@@ -20,7 +20,7 @@ object Day1 : Challenge() {
 
     private val replacements = listOf(
         "one" to "o1e",
-        "two" to "t2",
+        "two" to "t2o",
         "three" to "t3e",
         "four" to "4",
         "five" to "5e",
