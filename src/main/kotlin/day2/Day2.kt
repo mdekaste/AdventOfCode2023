@@ -9,7 +9,7 @@ fun main() {
 }
 
 object Day2 : Challenge() {
-    private val parsed: List<Game> = input.lines().map { line ->
+    private val games: List<Game> = input.lines().map { line ->
         line.split(": ").let { (game, subgames) ->
             Game(
                 id = game.substringAfter("Game ").toInt(),
@@ -46,6 +46,6 @@ object Day2 : Challenge() {
         val blue by map
     }
 
-    override fun part1() = parsed.filter { it.isValidGame(12, 13, 14) }.sumOf { it.id }
-    override fun part2() = parsed.sumOf(Game::power)
+    override fun part1() = games.filter { it.isValidGame(12, 13, 14) }.sumOf { it.id }
+    override fun part2() = games.sumOf(Game::power)
 }
