@@ -10,29 +10,28 @@ fun main() {
 
 object Day2 : Challenge() {
     private val parsed: List<Game> = input.lines().map { line ->
-        line.split(": ").let { (game, subgame) ->
-            val gameId = game.substringAfter("Game ").toInt()
-            val subgames = subgame.split("; ").map { cubes ->
-                SubGame(
-                    cubes.split(", ").map { cube ->
-                        cube.split(" ").let { (amount, color) ->
-                            amount.toInt() to color
-                        }
-                    }.associateBy({ it.second }, { it.first }).withDefault { 0 },
-                )
-            }
-            Game(gameId, subgames)
+        line.split(": ").let { (game, subgames) ->
+            Game(
+                id = game.substringAfter("Game ").toInt(),
+                subgames = subgames.split("; ").map { cubes ->
+                    Subgame(
+                        cubes.split(", ").associate { cube ->
+                            cube.split(" ").let { (amount, color) -> color to amount.toInt() }
+                        }.withDefault { 0 },
+                    )
+                },
+            )
         }
     }
 
     class Game(
         val id: Int,
-        private val subGames: List<SubGame>,
+        private val subgames: List<Subgame>,
     ) {
         fun isValidGame(red: Int, green: Int, blue: Int) =
-            subGames.all { subgame -> subgame.red <= red && subgame.green <= green && subgame.blue <= blue }
+            subgames.all { subgame -> subgame.red <= red && subgame.green <= green && subgame.blue <= blue }
 
-        val power = subGames.fold(Triple(0, 0, 0)) { (maxRed, maxBlue, maxGreen), subGame ->
+        val power = subgames.fold(Triple(0, 0, 0)) { (maxRed, maxBlue, maxGreen), subGame ->
             Triple(
                 max(maxRed, subGame.red),
                 max(maxBlue, subGame.blue),
@@ -41,7 +40,7 @@ object Day2 : Challenge() {
         }.let { (red, green, blue) -> red * green * blue }
     }
 
-    class SubGame(map: Map<String, Int>) {
+    class Subgame(map: Map<String, Int>) {
         val red by map
         val green by map
         val blue by map
