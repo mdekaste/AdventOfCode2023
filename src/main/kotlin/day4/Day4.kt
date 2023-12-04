@@ -1,7 +1,6 @@
 package day4
 
 import Challenge
-import helpers.extractInts
 
 fun main() {
     Day4.part1().let(::println)
@@ -9,38 +8,19 @@ fun main() {
 }
 
 object Day4 : Challenge() {
-    val parsed = input.lines().map {
-        it.split(":\\s+".toRegex()).let { (card, items) ->
-            val cardNo = card.extractInts().first()
-            val items = items.split(" \\|\\s+".toRegex()).let { (before, after) ->
-                before.split("\\s+".toRegex()).map { it.toInt() } to after.split("\\s+".toRegex()).map { it.toInt() }
-            }
-            cardNo to items
+    private val parsed = input.lines().map { line ->
+        line.split("\\D+".toRegex()).drop(1).map(String::toInt).let { numbers ->
+            numbers.subList(1, 11).toSet().intersect(numbers.subList(11, 36).toSet()).indices
         }
     }
 
-    override fun part1(): Any? {
-        return parsed.map {
-            val (winningNumbers, cardNumbers) = it.second
-            cardNumbers.intersect(winningNumbers).fold(0){ acc, _ -> if(acc == 0) 1 else acc * 2 }
-        }.sum()
-    }
+    override fun part1() = parsed.sumOf { it.fold(0) { acc, _ -> if (acc == 0) 1 else acc * 2 }.toInt() }
 
-    override fun part2(): Any? {
-        val parsed2 = parsed.associateBy({ it.first }, {it.second })
-        val array = IntArray(parsed2.size){ 1 }
-
-        parsed.forEach {
-            val index = it.first - 1
-            val cardCount = array[index]
-            val (winningNumbers, cardNumbers) = it.second
-            val leftOver = cardNumbers.intersect(winningNumbers)
-            for(i in 1..leftOver.size){
-                array[index + i] += cardCount
+    override fun part2() = IntArray(parsed.size) { 1 }.apply {
+        parsed.forEachIndexed { index, winningNumbers ->
+            winningNumbers.forEach {
+                this[index + it + 1] += this[index]
             }
         }
-
-        return array.sum()
-
-    }
+    }.sum()
 }
