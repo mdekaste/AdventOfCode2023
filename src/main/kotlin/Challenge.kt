@@ -1,5 +1,4 @@
 import java.io.File
-import kotlin.system.measureTimeMillis
 import kotlin.time.measureTimedValue
 
 abstract class Challenge(
@@ -10,5 +9,11 @@ abstract class Challenge(
     abstract fun part1(): Any?
     abstract fun part2(): Any?
 
-    fun solve() = measureTimedValue { listOf(name, part1(), part2()) }
+    fun solve(): Any? {
+        repeat(1000000) {
+            part1()
+            part2()
+        }
+        return measureTimedValue { listOf(name, part1(), part2()) }
+    }
 }
