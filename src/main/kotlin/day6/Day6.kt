@@ -1,7 +1,7 @@
 package day6
 
 import Challenge
-import helpers.extractInts
+import kotlin.math.*
 
 fun main() {
     Day6.part1().let(::println)
@@ -9,23 +9,23 @@ fun main() {
 }
 
 object Day6 : Challenge() {
-    val parsed = input.lines().map { it.extractInts() }.let {
-        mapOf(
-            it[0][0] to it[1][0],
-            it[0][1] to it[1][1],
-            it[0][2] to it[1][2],
-            it[0][3] to it[1][3],
-        )
-    }
-
-    override fun part1(): Any? {
-        return parsed.entries.fold(1) { acc, (time, distance) ->
-            acc * (0..time).map { i -> (time - i) * i }.count { it > distance }
-        }
-    }
+    override fun part1() = input.lines()
+        .map { it.split(" ").mapNotNull { it.toLongOrNull() } }
+        .let { (a, b) -> a.zip(b) }
+        .fold(1L) { acc, (time, distance) -> acc * solve(time, distance) }
 
     override fun part2(): Any? {
-        val (time, distance) = input.lines().map { it.extractInts().joinToString("") }.map { it.toLong() }
-        return (0..time).map { i -> (time - i) * i }.count { it > distance }
+        val (time, distance) = input.lines().map { it.substringAfter(":").replace(" ", "").toLong() }
+        return solve(time, distance)
+    }
+
+    private fun solve(time: Long, distance: Long): Long {
+        fun solveQuadratic(a: Double, b: Double, c: Double): Long {
+            val determinant = b * b - 4.0 * a * c
+            val root1 = (-b + sqrt(determinant)) / (2 * a)
+            val root2 = (-b - sqrt(determinant)) / (2 * a)
+            return ceil(root2).toLong() - ceil(root1).toLong()
+        }
+        return solveQuadratic(-1.0, time.toDouble(), -distance.toDouble())
     }
 }
