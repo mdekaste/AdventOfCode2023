@@ -24,7 +24,7 @@ object Day6 : Challenge() {
             val determinant = b * b - 4.0 * a * c
             val root1 = (-b + sqrt(determinant)) / (2 * a)
             val root2 = (-b - sqrt(determinant)) / (2 * a)
-            return ceil(root2).toLong() - ceil(root1).toLong()
+            return ceil(root2).toLong() - floor(root1).toLong() - 1
         }
         return solveQuadratic(-1.0, time.toDouble(), -distance.toDouble())
     }
