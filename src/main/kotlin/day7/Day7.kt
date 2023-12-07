@@ -1,6 +1,7 @@
 package day7
 
 import Challenge
+import java.util.AbstractMap.SimpleEntry
 
 fun main() {
     Day7.part1().let(::println)
@@ -8,72 +9,48 @@ fun main() {
 }
 
 object Day7 : Challenge() {
-    val parsed = input.lines().map {
-        it.split(" ").let { (a, b) ->
-            a to b.toInt()
-        }
-    }
-    override fun part1(): Any? {
-        return parsed.sortedWith(
-            compareBy<Pair<String, Int>> {
-                it.first.groupingBy { it }.eachCount().values.max()
-            }.thenBy {
-                it.first.groupingBy { it }.eachCount().values.sortedByDescending { it }[1]
-            }.thenBy {
-                it.first.first().let(::charToValue)
-            }.thenBy {
-                it.first[1].let(::charToValue)
-            }.thenBy {
-                it.first[2].let(::charToValue)
-            }.thenBy {
-                it.first[3].let(::charToValue)
-            }.thenBy {
-                it.first[4].let(::charToValue)
-            },
-        ).mapIndexed { index, pair ->
-            (index + 1) * pair.second
-        }.sum()
-    }
+    val parsed = input.lines().map { it.split(" ").let { (hand, value) -> Hand(hand, value.toInt()) } }
 
-    fun charToValue(char: Char): Int = when {
-        char.isDigit() -> char.digitToInt()
-        char == 'T' -> 10
-        char == 'J' -> 11
-        char == 'Q' -> 12
-        char == 'K' -> 13
-        char == 'A' -> 14
-        else -> error("")
-    }
+    data class Hand(
+        val suits: String,
+        val value: Int,
+    )
 
-    fun charToValue2(char: Char): Int = when {
-        char.isDigit() -> char.digitToInt()
-        char == 'T' -> 10
-        char == 'J' -> 1
-        char == 'Q' -> 12
-        char == 'K' -> 13
-        char == 'A' -> 14
-        else -> error("")
-    }
+    override fun part1() = solve(
+        typeMapper = fun(suits: String): List<Int> = suits.groupingBy { it }.eachCount().values.sortedDescending(),
+        charMapper = fun(char: Char): Int = when {
+            char.isDigit() -> char.digitToInt()
+            char == 'T' -> 10
+            char == 'Q' -> 12
+            char == 'K' -> 13
+            char == 'A' -> 14
+            else -> 11 // 'J'
+        },
+    )
 
-    override fun part2(): Any? {
-        return parsed.sortedWith(
-            compareBy<Pair<String, Int>> { hand ->
-                hand.first.groupingBy { it }.eachCount().maxOf {  if(it.key == 'J') it.value else it.value + hand.first.count{ it == 'J'} }
-            }.thenBy {
-                it.first.replace("J", "").groupingBy { it }.eachCount().values.sortedByDescending { it }.getOrNull(1) ?: 0
-            }.thenBy {
-                it.first.first().let(::charToValue2)
-            }.thenBy {
-                it.first[1].let(::charToValue2)
-            }.thenBy {
-                it.first[2].let(::charToValue2)
-            }.thenBy {
-                it.first[3].let(::charToValue2)
-            }.thenBy {
-                it.first[4].let(::charToValue2)
-            },
-        ).onEach { println(it) }.mapIndexed { index, pair ->
-            (index + 1) * pair.second
-        }.sum()
-    }
+    override fun part2() = solve(
+        typeMapper = fun(suits: String): List<Int> = suits.groupingBy { it }.eachCount().toMutableMap().apply {
+            val jokerCount = remove('J') ?: 0
+            val maxEntry = maxByOrNull { it.value } ?: SimpleEntry('J', 0)
+            set(maxEntry.key, maxEntry.value + jokerCount)
+        }.values.sortedDescending(),
+        charMapper = fun(char: Char): Int = when {
+            char.isDigit() -> char.digitToInt()
+            char == 'T' -> 10
+            char == 'Q' -> 12
+            char == 'K' -> 13
+            char == 'A' -> 14
+            else -> 1 // 'J'
+        },
+    )
+
+    fun solve(typeMapper: (String) -> List<Int>, charMapper: (Char) -> Int): Int = parsed.sortedWith(
+        compareBy<Hand> { typeMapper(it.suits)[0] }
+            .thenBy { typeMapper(it.suits).getOrNull(1) ?: 0 }
+            .thenBy { charMapper(it.suits[0]) }
+            .thenBy { charMapper(it.suits[1]) }
+            .thenBy { charMapper(it.suits[2]) }
+            .thenBy { charMapper(it.suits[3]) }
+            .thenBy { charMapper(it.suits[4]) },
+    ).mapIndexed { index, hand -> (index + 1) * hand.value }.sum()
 }
