@@ -18,14 +18,7 @@ object Day7 : Challenge() {
 
     override fun part1() = solve(
         typeMapper = fun(suits: String): List<Int> = suits.groupingBy { it }.eachCount().values.sortedDescending(),
-        charMapper = fun(char: Char): Int = when {
-            char.isDigit() -> char.digitToInt()
-            char == 'T' -> 10
-            char == 'Q' -> 12
-            char == 'K' -> 13
-            char == 'A' -> 14
-            else -> 11 // 'J'
-        },
+        charMapper = fun(char: Char): Int = "23456789TJQKA".indexOf(char),
     )
 
     override fun part2() = solve(
@@ -34,14 +27,7 @@ object Day7 : Challenge() {
             val maxEntry = maxByOrNull { it.value } ?: SimpleEntry('J', 0)
             set(maxEntry.key, maxEntry.value + jokerCount)
         }.values.sortedDescending(),
-        charMapper = fun(char: Char): Int = when {
-            char.isDigit() -> char.digitToInt()
-            char == 'T' -> 10
-            char == 'Q' -> 12
-            char == 'K' -> 13
-            char == 'A' -> 14
-            else -> 1 // 'J'
-        },
+        charMapper = fun(char: Char): Int = "J23456789TQKA".indexOf(char),
     )
 
     fun solve(typeMapper: (String) -> List<Int>, charMapper: (Char) -> Int): Int = parsed.sortedWith(
