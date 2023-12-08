@@ -43,7 +43,7 @@ object Day8 : Challenge() {
 
     private fun lcm(a: Long, b: Long) = (a * b) / gcd(a, b)
 
-    private fun gcd(a: Long, b: Long): Long = when (b) {
+    private tailrec fun gcd(a: Long, b: Long): Long = when (b) {
         0L -> a
         else -> gcd(b, a % b)
     }
