@@ -1,6 +1,7 @@
 package day8
 
 import Challenge
+import helpers.lcm
 import helpers.splitOnEmpty
 
 fun main() {
@@ -14,12 +15,12 @@ object Day8 : Challenge() {
 
     init {
         input.splitOnEmpty().let { (lr, commands) ->
-            path = sequence { while (true) yieldAll(lr.toList()) }
-            graph = commands.lines().map { line ->
+            path = sequence { while (true) yieldAll(lr.asSequence()) }
+            graph = commands.lines().associate { line ->
                 line.split(" = ").let { (a, b) ->
                     a to (b.substringAfter('(').substringBefore(')').split(", ").let { (x, y) -> x to y })
                 }
-            }.toMap()
+            }
         }
     }
 
@@ -27,9 +28,9 @@ object Day8 : Challenge() {
 
     override fun part2() = solve({ it.endsWith('A') }, { it.endsWith('Z') })
 
-    fun solve(startPositions: (String) -> Boolean, endPositions: (String) -> Boolean) =
-        graph.filterKeys(startPositions).keys.map {
-            path.foldIndexed(it) { index, key, c ->
+    private fun solve(startPositions: (String) -> Boolean, endPositions: (String) -> Boolean) =
+        graph.keys.filter(startPositions).map { start ->
+            path.foldIndexed(start) { index, key, c ->
                 if (endPositions(key)) {
                     return@map index.toLong()
                 }
@@ -37,7 +38,7 @@ object Day8 : Challenge() {
                     'L' -> graph.getValue(key).first
                     else -> graph.getValue(key).second
                 }
-            }.let { error("should not exit loop") }
+            }.let { error("should not exit loop, but exited on key: $it") }
         }.reduce(::lcm)
 
     private fun lcm(a: Long, b: Long) = (a * b) / gcd(a, b)
