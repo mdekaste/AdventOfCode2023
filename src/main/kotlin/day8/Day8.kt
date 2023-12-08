@@ -9,103 +9,45 @@ fun main() {
 }
 
 object Day8 : Challenge() {
-    val parsed = input.splitOnEmpty().let { (lr, commands) ->
-        lr.toList() to commands.lines().map { line ->
-            line.split(" = ").let { (a, b) ->
-                a to (b.substring(1).substringBefore(')').split(", ").let { (x, y) -> x to y })
-            }
-        }.toMap()
+    val path: Sequence<Char>
+    val graph: Map<String, Pair<String, String>>
+
+    init {
+        val parsed = input.splitOnEmpty().let { (lr, commands) ->
+            lr.toList() to commands.lines().map { line ->
+                line.split(" = ").let { (a, b) ->
+                    a to (b.substring(1).substringBefore(')').split(", ").let { (x, y) -> x to y })
+                }
+            }.toMap()
+        }
+        path = sequence { while (true) yieldAll(parsed.first) }
+        graph = parsed.second
     }
 
-    override fun part1(): Any? {
-        val sequence = sequence {
-            while (true) {
-                yieldAll(parsed.first.asSequence())
-            }
-        }
-        val graph = parsed.second
-        var curNode = graph.get("AAA") ?: return null
-        sequence.forEachIndexed { index, c ->
-            val next = when (c) {
-                'L' -> curNode.first
-                'R' -> curNode.second
-                else -> error("")
-            }
-            if (next == "ZZZ") {
-                return index + 1
-            }
-            curNode = graph.getValue(next)
-        }
-        return null
-    }
-
-    override fun part2(): Any? {
-        val graph = parsed.second
-        val nodes = graph.filter { it.key.endsWith('A') }
-        var cycles = nodes.map { findCycle(it.key) }
-        val stepPositions = cycles.map { it.first.toLong() }.toLongArray()
-        val nextSteps: List<List<Int>> = cycles.map { it.second }
-        val indicesOfNext = LongArray(stepPositions.size) { 0L }
-        while (true) {
-            val indexOfLowest = stepPositions.withIndex().minBy { it.value }.index
-            val indexOfNext = indicesOfNext[indexOfLowest]++ % nextSteps[indexOfLowest].size
-            stepPositions[indexOfLowest] += nextSteps[indexOfLowest][indexOfNext.toInt()].toLong()
-            // println(stepPositions.toList() to stepPositions.distinct().size)
-            if (stepPositions.distinct().size == 1) {
-                return stepPositions[0]
-            }
-        }
-    }
-
-    fun findCycle(node: String): Pair<Int, List<Int>> {
-        val sequence = sequence {
-            while (true) {
-                yieldAll(parsed.first.withIndex())
-            }
-        }
-        val graph = parsed.second
-        val (indexOfFirstZ, node2) = findFirstZ(node)
-        var curNode = graph.getValue(node2)
-
-        val set = mutableSetOf(node to 0)
-        val indices = mutableSetOf(0)
-
-        sequence.drop(indexOfFirstZ).forEachIndexed { index, (indexed, char) ->
-            val next = when (char) {
-                'L' -> curNode.first
-                'R' -> curNode.second
-                else -> error("")
-            }
-            if (next.endsWith('Z')) {
-                indices.add(index + 1)
-                val canAdd = set.add(next to indexed)
-                if (!canAdd) {
-                    return indexOfFirstZ to indices.zipWithNext { a, b -> b - a }
+    fun solve(startPositions: (String) -> Boolean, endPositions: (String) -> Boolean): Long {
+        val positions = graph.filterKeys(startPositions).keys
+        return positions.map {
+            path.foldIndexed(it) { index, key, c ->
+                if(endPositions(key)){
+                    return@map index.toLong()
+                }
+                when (c) {
+                    'L' -> graph.getValue(key).first
+                    else -> graph.getValue(key).second
                 }
             }
-            curNode = graph.getValue(next)
-        }
-        error("")
+            error("")
+        }.reduce(::lcm)
     }
 
-    fun findFirstZ(node: String): IndexedValue<String> {
-        val sequence = sequence {
-            while (true) {
-                yieldAll(parsed.first)
-            }
-        }
-        var curValue = parsed.second.getValue(node)
-        sequence.forEachIndexed { index, c ->
-            val next = when (c) {
-                'L' -> curValue.first
-                'R' -> curValue.second
-                else -> error("")
-            }
-            if (next.endsWith('Z')) {
-                return IndexedValue(index + 1, next)
-            }
-            curValue = parsed.second.getValue(next)
-        }
-        error("")
+    fun lcm(a: Long, b: Long) = (a * b) / gcd(a, b)
+
+    fun gcd(a: Long, b: Long): Long = when (b) {
+        0L -> a
+        else -> gcd(b, a % b)
     }
+
+    override fun part1() = solve({ it == "AAA" }, { it == "ZZZ" })
+
+    override fun part2() = solve({ it.endsWith('A') }, { it.endsWith('Z') })
 }
