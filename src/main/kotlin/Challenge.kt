@@ -10,7 +10,7 @@ abstract class Challenge(
     abstract fun part2(): Any?
 
     fun solve(): Any? {
-        repeat(10000) {
+        repeat(100000) {
             part1()
             part2()
         }
