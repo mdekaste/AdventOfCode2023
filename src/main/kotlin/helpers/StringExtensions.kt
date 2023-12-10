@@ -7,5 +7,7 @@ object StringExtensions {
 fun String.splitOnEmpty() = this.split(System.lineSeparator() + System.lineSeparator())
 fun String.extractInts() = this.split(StringExtensions.NON_INT_DELIMITER).mapNotNull(String::toIntOrNull)
 
+fun String.extractLongs() = split(StringExtensions.NON_INT_DELIMITER).mapNotNull(String::toLongOrNull)
+
 fun CharSequence.indexOfOrNull(other: String) = indexOf(other).takeIf { it != -1 }
 fun CharSequence.lastIndexOfOrNull(other: String) = lastIndexOf(other).takeIf { it != -1 }

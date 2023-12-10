@@ -1,6 +1,9 @@
 package day5
 
 import Challenge
+import day5.Day5.add
+import day5.Day5.rangeIntersect
+import helpers.extractLongs
 import helpers.splitOnEmpty
 import kotlin.math.max
 import kotlin.math.min
@@ -12,45 +15,35 @@ fun main() {
 }
 
 object Day5 : Challenge() {
-    val parsed = input.splitOnEmpty().let {
-        it.first().substringAfter("seeds: ").split(" ").map { it.toLong() } to it.drop(1).map {
-            it.lines().drop(1).map { it.split(" ").map { it.toLong() } }
-        }.map { maps ->
-            buildMap {
-                maps.forEach { (target, source, range) ->
-                    put(source..<source + range, target - source)
-                }
-            }
-        }
+    data class Input(
+        val seeds: List<Long>,
+        val almanac: List<Map<LongRange, Long>>,
+    )
+
+    private val parsed = input.splitOnEmpty().let { chunks ->
+        Input(
+            seeds = chunks.first().extractLongs(),
+            almanac = chunks.drop(1).map { chunk ->
+                chunk.lines()
+                    .drop(1)
+                    .map { line -> line.extractLongs() }
+                    .associate { (target, source, range) -> source..<source + range to target - source }
+            },
+        )
     }
 
-    override fun part1(): Any? {
-        val almanac = parsed.second
-        val seeds = parsed.first
-        return seeds.minOf {
-            almanac.fold(it) { source, range ->
-                source + (range.entries.firstOrNull { (targetRange, _) -> source in targetRange }?.value ?: 0L)
-            }
-        }
-    }
+    override fun part1() = solve(parsed.seeds.map { it..it })
+
+    override fun part2() = solve(parsed.seeds.chunked(2).map { (seed, range) -> seed..<seed + range })
 
     private fun LongRange.add(add: Long): LongRange = (start + add)..(last + add)
-    private fun LongRange.rangeIntersect(other: LongRange) =
-        max(first, other.first)..min(last, other.last)
+    private fun LongRange.rangeIntersect(other: LongRange) = max(first, other.first)..min(last, other.last)
 
-    override fun part2(): Any? {
-        val almanac = parsed.second
-        val seeds = parsed.first.chunked(2).map { (seed, range) -> seed..<seed + range }
-        fun recursiveMinimalSliver(range: LongRange, step: Int): Long {
-            return when (step) {
-                almanac.size -> range.first
-                else -> almanac[step].mapNotNull { (target, step) ->
-                    target.rangeIntersect(range).takeUnless { it.isEmpty() }?.add(step)
-                }.minOfOrNull {
-                    recursiveMinimalSliver(it, step + 1)
-                } ?: range.first
+    private fun solve(seeds: List<LongRange>) = parsed.almanac.fold(seeds) { ranges, mapper ->
+        ranges.flatMap { range ->
+            mapper.mapNotNull { (target, step) ->
+                target.rangeIntersect(range).takeUnless { it.isEmpty() }?.add(step)
             }
         }
-        return seeds.minOf { recursiveMinimalSliver(it, 0) }
-    }
+    }.minOf { it.first }
 }
