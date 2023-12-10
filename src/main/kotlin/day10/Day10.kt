@@ -70,8 +70,12 @@ object Day10 : Challenge() {
     }
 
     fun printGraph(map: Map<Point, Any?>) {
-        input.lines().forEachIndexed { y, line ->
-            line.forEachIndexed { x, _ ->
+        val yMin = map.minOf { it.key.first }
+        val yMax = map.maxOf { it.key.first }
+        val xMin = map.minOf { it.key.second }
+        val xMax = map.maxOf { it.key.second }
+        (yMin..yMax).forEach { y ->
+            (xMin..xMax).forEach { x ->
                 print(
                     when (val value = map[y to x]) {
                         null -> "|....|"
@@ -112,56 +116,56 @@ object Day10 : Challenge() {
     }.flatten().toSet()
 
     override fun part2(): Any? {
-        val enclosedLoop = findEnclosedLoop()
-        val allowedTiles = all - enclosedLoop
-        val candidates = enclosedLoop.flatMap { it.neighbours() }.distinct().toMutableList()
-        val enclosed: MutableSet<Point> = mutableSetOf()
+        val loop = findLoop()
+        val extendedLoop = (loop.toList() + loop.first()).map { it * 2 }.zipWithNext { a, b -> listOf(a, a.between(b)) }.flatten().distinct()
+        val yMin = -2
+        val yMax = input.lines().size * 2
+        val xMin = -2
+        val xMax = input.lines()[0].length * 2
+        val fullGrid = (yMin..yMax).flatMap { y ->
+            (xMin..xMax).map { x ->
+                y to x
+            }
+        }.toSet()
+        val visited = mutableSetOf(-1 to -1)
+        var candidates = (-1 to -1).neighbours().toMutableList()
         while (candidates.isNotEmpty()) {
-            val (points, isEnclosed) = floodFill(allowedTiles, candidates.removeFirst(), all)
-            if (isEnclosed) {
-                enclosed += points
+            val candidate = candidates.removeFirst()
+            if (candidate !in fullGrid) {
+                continue
             }
-            candidates -= points
-        }
-        printGraph(enclosedLoop.map { it to 1 }.toMap() + enclosed.map { it to 'I' })
-        return enclosed.size
-    }
-
-    fun findEnclosedLoop(): Set<Point> {
-        val visited = mutableMapOf(startPoint to 0)
-        val curCandidates = graph.getValue(startPoint).map { it to 1 }.toMutableList()
-        while (curCandidates.isNotEmpty()) {
-            val (curCandidate, distance) = curCandidates.removeFirst()
-            if (graph.containsKey(curCandidate)) {
-                if (visited.containsKey(curCandidate)) {
-                    continue
-                }
-                visited[curCandidate] = distance
-                val nextCandidates = graph.getValue(curCandidate).filter { next -> graph[next]?.any { it == curCandidate } ?: false }
-                curCandidates.addAll(nextCandidates.map { it to distance + 1 })
+            if (candidate in extendedLoop) {
+                continue
+            }
+            if (visited.add(candidate)) {
+                candidates.addAll(candidate.neighbours())
             }
         }
-        return visited.keys
-    }
-
-    fun floodFill(allowedTiles: Set<Point>, startPoint: Point, allTiles: Set<Point>): Pair<Set<Point>, Boolean> {
-        if(startPoint !in allowedTiles){
-            return setOf(startPoint) to false
-        }
-        var isEnclosed = true
-        val visited = mutableSetOf(startPoint)
-        val nextCandidates = startPoint.neighbours().toMutableList()
-        while (nextCandidates.isNotEmpty()) {
-            when (val candidate = nextCandidates.removeFirst()) {
-                !in allTiles -> isEnclosed = false
-                in allowedTiles -> if (visited.add(candidate)) {
-                    nextCandidates.addAll(candidate.neighbours())
+        var sum = 0
+        for (y in 0 until input.lines().size) {
+            for (x in 0 until input.lines()[0].length) {
+                val point = y * 2 to x * 2
+                if (point !in visited && point !in extendedLoop) {
+                    sum++
                 }
             }
         }
-        ///printGraph(allowedTiles.map { it to 'X' }.toMap())
-        return visited to isEnclosed
+        return sum
     }
+
+    operator fun Point.times(amount: Int) = first * amount to second * amount
+
+    fun findLoop(): Set<Point> {
+        val direction = graph.getValue(startPoint).first()
+        return generateSequence(startPoint to direction) { (p1, p2) -> p2 to (graph.getValue(p2) - p1).first() }
+            .fold(setOf<Point>()) { s, (p1, p2) ->
+                when (p1 in s) {
+                    true -> return s
+                    else -> s + p1
+                }
+            }
+    }
+    fun Point.between(other: Point) = first + (other.first - first) / 2 to second + (other.second - second) / 2
 
     fun Point.neighbours() = listOf(north, east, south, west).map { it + this }
 }
