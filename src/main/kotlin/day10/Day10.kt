@@ -1,14 +1,16 @@
 package day10
 
+// ktlint-disable no-wildcard-imports
 import Challenge
 import day10.Compass.*
-import java.util.EnumSet
+import java.util.*
 import kotlin.math.absoluteValue
 
 fun main() {
     Day10.part1().let(::println)
     Day10.part2().let(::println)
 }
+
 enum class Compass { N, E, S, W }
 typealias Point = Pair<Int, Int>
 typealias Pipe = EnumSet<Compass>
@@ -21,6 +23,7 @@ object Day10 : Challenge() {
         START_PIPE -> compass
         else -> minus(compass.reciprocal()).first()
     }
+
     operator fun Point.plus(compass: Compass) = when (compass) {
         N -> first - 1 to second
         E -> first to second + 1
@@ -28,7 +31,7 @@ object Day10 : Challenge() {
         W -> first to second - 1
     }
 
-    val directions: List<Compass> = run {
+    private val directions: List<Compass> = run {
         val grid = input.lines().flatMapIndexed { y, line ->
             line.mapIndexedNotNull { x, c ->
                 y to x to when (c) {
