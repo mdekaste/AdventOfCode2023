@@ -2,6 +2,7 @@ package day10
 
 // ktlint-disable no-wildcard-imports
 import Challenge
+import kotlin.math.absoluteValue
 
 fun main() {
     Day10.part1().let(::println)
@@ -48,5 +49,5 @@ object Day10 : Challenge() {
 
     override fun part2() = points.plus(points.first())
         .zipWithNext { (y1, x1), (_, x2) -> (x2 - x1) * y1 }
-        .sum() - part1() + 1
+        .sum().absoluteValue - part1() + 1
 }
