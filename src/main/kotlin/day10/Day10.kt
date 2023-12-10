@@ -34,10 +34,8 @@ object Day10 : Challenge() {
                     else -> emptyList<Point>()
                 }.map { it + (y to x) }
             }
-        }.toMap().let { grid ->
-            grid.mapValues { (from, pipe) -> pipe.filter { to -> grid[to].orEmpty().any { it == from } } }
-        }
-        val firstMove = grid.getValue(startPoint).first()
+        }.toMap()
+        val firstMove = grid.getValue(startPoint).first { from -> grid.getValue(from).any { it == startPoint } }
         generateSequence(startPoint to firstMove) { (from, to) ->
             when (to) {
                 startPoint -> null
