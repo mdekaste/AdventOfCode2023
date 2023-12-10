@@ -2,69 +2,53 @@ package day10
 
 // ktlint-disable no-wildcard-imports
 import Challenge
-import day10.Compass.*
-import java.util.*
-import kotlin.math.absoluteValue
 
 fun main() {
     Day10.part1().let(::println)
     Day10.part2().let(::println)
 }
-
-enum class Compass { N, E, S, W }
 typealias Point = Pair<Int, Int>
-typealias Pipe = EnumSet<Compass>
+typealias Pipe = List<Point>
 
 object Day10 : Challenge() {
-    private val START_PIPE = EnumSet.allOf(Compass::class.java)
-    private val EMPTY_PIPE = EnumSet.noneOf(Compass::class.java)
-    private fun Compass.reciprocal() = Compass.entries[(Compass.entries.indexOf(this) + 2) % Compass.entries.size]
-    private fun Pipe.otherside(compass: Compass): Compass = when (this) {
-        START_PIPE -> compass
-        else -> minus(compass.reciprocal()).first()
-    }
+    private val NORTH = -1 to 0
+    private val EAST = 0 to 1
+    private val SOUTH = 1 to 0
+    private val WEST = 0 to -1
 
-    operator fun Point.plus(compass: Compass) = when (compass) {
-        N -> first - 1 to second
-        E -> first to second + 1
-        S -> first + 1 to second
-        W -> first to second - 1
-    }
+    private operator fun Point.plus(other: Point) = first + other.first to second + other.second
+    private operator fun Point.minus(other: Point) = first - other.first to second - other.second
 
-    private val directions: List<Compass> = run {
-        val grid = input.lines().flatMapIndexed { y, line ->
+    private val points: List<Point> = run {
+        lateinit var startPoint: Point
+        val grid: Map<Point, Pipe> = input.lines().flatMapIndexed { y, line ->
             line.mapIndexedNotNull { x, c ->
-                y to x to when (c) {
-                    'L' -> EnumSet.of(N, E)
-                    '|' -> EnumSet.of(N, S)
-                    'J' -> EnumSet.of(N, W)
-                    'F' -> EnumSet.of(E, S)
-                    '-' -> EnumSet.of(E, W)
-                    '7' -> EnumSet.of(S, W)
-                    'S' -> START_PIPE
-                    else -> EMPTY_PIPE
-                }
+                (y to x) to when (c) {
+                    'L' -> listOf(NORTH, EAST)
+                    '|' -> listOf(NORTH, SOUTH)
+                    'J' -> listOf(NORTH, WEST)
+                    'F' -> listOf(EAST, SOUTH)
+                    '-' -> listOf(EAST, WEST)
+                    '7' -> listOf(SOUTH, WEST)
+                    'S' -> listOf(NORTH, EAST, SOUTH, WEST).also { startPoint = y to x }
+                    else -> emptyList<Point>()
+                }.map { it + (y to x) }
             }
-        }.toMap().withDefault { EMPTY_PIPE }
-        val startPipe = grid.entries.first { (_, s) -> s == START_PIPE }.key
-        val direction = when {
-            E in grid.getValue(startPipe + W) -> W
-            S in grid.getValue(startPipe + N) -> N
-            else -> E
+        }.toMap().let { grid ->
+            grid.mapValues { (from, pipe) -> pipe.filter { to -> grid[to].orEmpty().any { it == from } } }
         }
-        generateSequence(startPipe to direction) { (point, direction) ->
-            point.plus(direction).takeUnless(startPipe::equals)?.let { it to grid.getValue(it).otherside(direction) }
-        }.map { (_, direction) -> direction }.toList()
+        val firstMove = grid.getValue(startPoint).first()
+        generateSequence(startPoint to firstMove) { (from, to) ->
+            when (to) {
+                startPoint -> null
+                else -> to to grid.getValue(to).minus(from).first()
+            }
+        }.map { it.first }.toList()
     }
 
-    override fun part1() = directions.size / 2
+    override fun part1(): Int = points.size / 2
 
-    override fun part2() = directions.fold(0 to 0) { (sum, vector), compass ->
-        when (compass) {
-            N -> sum + vector to vector
-            E -> sum to vector + 1
-            S -> sum - vector to vector
-            W -> sum to vector - 1
-        }
-    }.first.absoluteValue - part1() + 1
+    override fun part2() = points.plus(points.first())
+        .zipWithNext { (y1, x1), (_, x2) -> (x2 - x1) * y1 }
+        .sum() - part1() + 1
 }
