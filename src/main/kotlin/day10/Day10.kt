@@ -63,12 +63,12 @@ object Day10 : Challenge() {
 
     override fun part1() = moves.size / 2
 
-    override fun part2() = moves.onEach { println(it) }.fold(0 to 0) { (sum, d), move ->
-        when (move) {
+    override fun part2() = moves.fold(0 to 0) { (sum, d), compass ->
+        when (compass) {
             N -> sum to d + 1
             S -> sum to d - 1
             W -> sum - d to d
             E -> sum + d to d
         }
-    }.first.absoluteValue - (moves.size / 2) + 1
+    }.first.absoluteValue - part1() + 1
 }
