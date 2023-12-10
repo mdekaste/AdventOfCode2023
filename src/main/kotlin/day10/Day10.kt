@@ -36,7 +36,11 @@ object Day10 : Challenge() {
                 }.map { it + (y to x) }
             }
         }.toMap()
+        // calculate the first valid move e.g. the move going up needs to also be the move going down.
+        // This is needed because the start can lay next to its own path.
         val firstMove = grid.getValue(startPoint).first { from -> grid.getValue(from).any { it == startPoint } }
+        // walk through the pipeline, where the next move is the possible moves minus the one you came from
+        // sequences break on null, so break when you find the start again
         generateSequence(startPoint to firstMove) { (from, to) ->
             when (to) {
                 startPoint -> null
@@ -47,6 +51,7 @@ object Day10 : Challenge() {
 
     override fun part1(): Int = points.size / 2
 
+    // area under n-sided polygon generalizes nicely in a strict 2D environment
     override fun part2() = points.plus(points.first())
         .zipWithNext { (y1, x1), (_, x2) -> (x2 - x1) * y1 }
         .sum().absoluteValue - part1() + 1
