@@ -32,7 +32,7 @@ object Day10 : Challenge() {
         }.toMap()
         // calculate the first valid move e.g. the move going up needs to also be the move going down.
         // This is needed because the start can lay next to its own path.
-        val firstMove = grid.getValue(startPoint).first { from -> grid.getValue(from).any { it == startPoint } }
+        val firstMove = grid.getValue(startPoint).first { from -> grid.getValue(from).any(startPoint::equals) }
         // walk through the pipeline, where the next move is the possible moves minus the one you came from
         generateSequence(startPoint to firstMove) { (from, to) ->
             when (to) {
