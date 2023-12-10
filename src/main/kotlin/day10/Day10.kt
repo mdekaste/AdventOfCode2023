@@ -8,21 +8,15 @@ fun main() {
     Day10.part1().let(::println)
     Day10.part2().let(::println)
 }
-typealias Point = Pair<Int, Int>
-typealias Pipe = List<Point>
 
 object Day10 : Challenge() {
     private val NORTH = -1 to 0
     private val EAST = 0 to 1
     private val SOUTH = 1 to 0
     private val WEST = 0 to -1
-
-    private operator fun Point.plus(other: Point) = first + other.first to second + other.second
-    private operator fun Point.minus(other: Point) = first - other.first to second - other.second
-
-    private val points: List<Point> = run {
-        lateinit var startPoint: Point
-        val grid: Map<Point, Pipe> = input.lines().flatMapIndexed { y, line ->
+    private val points = run {
+        lateinit var startPoint: Pair<Int, Int>
+        val grid = input.lines().flatMapIndexed { y, line ->
             line.mapIndexedNotNull { x, c ->
                 (y to x) to when (c) {
                     'L' -> listOf(NORTH, EAST)
@@ -32,15 +26,14 @@ object Day10 : Challenge() {
                     '-' -> listOf(EAST, WEST)
                     '7' -> listOf(SOUTH, WEST)
                     'S' -> listOf(NORTH, EAST, SOUTH, WEST).also { startPoint = y to x }
-                    else -> emptyList<Point>()
-                }.map { it + (y to x) }
+                    else -> emptyList()
+                }.map { (y2, x2) -> y2 + y to x2 + x }
             }
         }.toMap()
         // calculate the first valid move e.g. the move going up needs to also be the move going down.
         // This is needed because the start can lay next to its own path.
         val firstMove = grid.getValue(startPoint).first { from -> grid.getValue(from).any { it == startPoint } }
         // walk through the pipeline, where the next move is the possible moves minus the one you came from
-        // sequences break on null, so break when you find the start again
         generateSequence(startPoint to firstMove) { (from, to) ->
             when (to) {
                 startPoint -> null
