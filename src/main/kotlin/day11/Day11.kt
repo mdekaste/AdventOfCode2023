@@ -1,6 +1,7 @@
 package day11
 
 import Challenge
+import com.sun.source.tree.Tree
 import java.util.*
 import kotlin.math.abs
 
@@ -13,14 +14,14 @@ fun main() {
 
 object Day11 : Challenge() {
     private val parsed = input.lines()
-        .flatMapIndexed { y: Int, s: String -> s.mapIndexedNotNull { x, c -> (y to x).takeIf { c == '#' } } }
+        .flatMapIndexed { y, s -> s.mapIndexedNotNull { x, c -> (y to x).takeIf { c == '#' } } }
 
     private fun holes(selector: (Pair<Int, Int>) -> Int) = parsed.asSequence()
         .map(selector)
         .sorted()
         .distinct()
         .zipWithNext { a, b -> b to b - a - 1 }
-        .toMap(TreeMap())
+        .toMap().toSortedMap()
 
     override fun part1() = solve(2)
     override fun part2() = solve(1000000)
@@ -30,8 +31,8 @@ object Day11 : Challenge() {
         val holesX = holes { it.second }
 
         val newPlaces = parsed.map { (y, x) ->
-            val holesBeforeY = holesY.headMap(y, true).values.sum()
-            val holesBeforeX = holesX.headMap(x, true).values.sum()
+            val holesBeforeY = holesY.headMap(y + 1).values.sum()
+            val holesBeforeX = holesX.headMap(x + 1).values.sum()
             y + holesBeforeY * (expansionAmount - 1) to x + holesBeforeX * (expansionAmount - 1)
         }
 
