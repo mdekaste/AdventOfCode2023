@@ -16,12 +16,10 @@ object Day11 : Challenge() {
     private val parsed = input.lines()
         .flatMapIndexed { y, s -> s.mapIndexedNotNull { x, c -> (y to x).takeIf { c == '#' } } }
 
-    private fun holes(selector: (Pair<Int, Int>) -> Int) = parsed.asSequence()
-        .map(selector)
-        .sorted()
-        .distinct()
+    private fun holes(selector: (Pair<Int, Int>) -> Int) = parsed
+        .mapTo(TreeSet(), selector)
         .zipWithNext { a, b -> b to b - a - 1 }
-        .toMap().toSortedMap()
+        .toMap(TreeMap())
 
     override fun part1() = solve(2)
     override fun part2() = solve(1000000)
