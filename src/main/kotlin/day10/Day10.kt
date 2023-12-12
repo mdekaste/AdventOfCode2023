@@ -10,10 +10,6 @@ fun main() {
 }
 
 object Day10 : Challenge() {
-    private val NORTH = -1 to 0
-    private val EAST = 0 to 1
-    private val SOUTH = 1 to 0
-    private val WEST = 0 to -1
     private val points = run {
         lateinit var startPoint: Pair<Int, Int>
         val grid = input.lines().flatMapIndexed { y, line ->
