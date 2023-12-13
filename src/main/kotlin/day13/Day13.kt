@@ -17,7 +17,7 @@ object Day13 : Challenge() {
         return parsed.map { it.toReflectionIndex() }.sum()
     }
 
-    fun List<String>.toReflectionIndex(): Int {
+    fun List<String>.toReflectionIndex(not: Int = -1): Int {
         return (1 until size).mapNotNull {
             val above = subList(0, it)
             val under = subList(it, size)
@@ -26,10 +26,10 @@ object Day13 : Challenge() {
             } else {
                 null
             }
-        }.firstOrNull() ?: this.flip()
+        }.firstOrNull { it != not } ?: this.flip(not)
     }
 
-    fun List<String>.flip(): Int {
+    fun List<String>.flip(not: Int = -1): Int {
         val result = List(first().length) { List(size) { ' ' }.toMutableList() }
         for (x in 0 until size) {
             for (y in 0 until first().length) {
@@ -46,7 +46,7 @@ object Day13 : Challenge() {
                 } else {
                     null
                 }
-            }.firstOrNull() ?: 0
+            }.firstOrNull{ it != not } ?: 0
             )
     }
 
@@ -64,7 +64,8 @@ object Day13 : Challenge() {
         return parsed.map { boards ->
             boards.fixSmudge().let { (source, others) ->
                 val sourceReflectionIndex = source.toReflectionIndex()
-                others.asSequence().map { it.toReflectionIndex() }.first { it != sourceReflectionIndex }
+                val x = others.map { it.toReflectionIndex(sourceReflectionIndex) }.filter { it != 0 }.firstOrNull() { it != sourceReflectionIndex } ?: -1
+                x
             }
         }.sum()
     }
