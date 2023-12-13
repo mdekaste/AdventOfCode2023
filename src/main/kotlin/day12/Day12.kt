@@ -4,8 +4,12 @@ import Challenge
 import kotlin.math.min
 
 fun main() {
-    Day12.part1().let(::println)
-    Day12.part2().let(::println)
+    // 2,4,5 = 14,11,6
+    val damaged = listOf(2, 4, 5)
+    val cumSum = damaged.asReversed().map(Int::inc).runningReduce(Int::plus).asReversed()
+    println(cumSum)
+    // Day12.part1().let(::println)
+    // Day12.part2().let(::println)
 }
 
 object Day12 : Challenge() {
@@ -19,6 +23,7 @@ object Day12 : Challenge() {
             damaged = damages.extend(amount, ",").split(",").map(String::toInt),
         )
     }
+
     override fun part1() = solve(1)
     override fun part2() = solve(5)
 

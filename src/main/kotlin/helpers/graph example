@@ -1,0 +1,33 @@
+    val parsed = buildMap<Point, Node> {
+        input.lines().forEachIndexed { y, s ->
+            s.forEachIndexed { x, c ->
+                put(y to x, Node(y to x, c.digitToInt(), this))
+            }
+        }
+    }
+    override fun part1(): Any? {
+        val origin = parsed.values.first().apply { sum = 0 }
+        val goal = parsed.values.last()
+        val queue = PriorityQueue(compareBy(Node::sum)).apply { add(origin) }
+        while(true){
+            when(val node = queue.poll()){
+                goal -> return goal.sum
+                else -> node.neighbours.filter { it.sum == it.score }.forEach {
+                    it.sum = it.score + node.sum
+                    queue.offer(it)
+                }
+            }
+        }
+    }
+    override fun part2(): Any? {
+        return null
+    }
+
+    class Node(
+        val pos: Point,
+        val score: Int,
+        graph: Map<Point, Node>
+    ){
+        val neighbours: List<Node> by lazy { pos.neighbours4().mapNotNull(graph::get) }
+        var sum: Int = score
+    }
