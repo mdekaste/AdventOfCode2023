@@ -7,6 +7,7 @@ import java.util.*
 fun main() {
     Day13.part1().let(::println)
     Day13.part2().let(::println)
+    Day13.solve().let(::println)
 }
 
 typealias Grid = List<String>

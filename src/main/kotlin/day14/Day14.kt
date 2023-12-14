@@ -43,58 +43,44 @@ object Day14 : Challenge() {
         }
     }
 
-    override fun part2(): Any? {
-        val nodes = parsed.values
-        var boulderLocations = nodes.filter { it.currentItem == 'O' }.map { it.pos }
-        var memory = mutableSetOf(boulderLocations)
-        var index = 0
-        generateSequence(Cycle(boulderLocations, parsed)){ c ->
-            c.cycle()
-        }
-        while (true) {
-            Direction.entries.forEach { direction ->
-                boulderLocations = boulderLocations
-                    .sortedWith(direction.sortDirection)
-                    .map(parsed::getValue)
-                    .map { it.moveBoulder(direction) }
-            }
-            if (!memory.add(boulderLocations)) {
-                val indexOf = memory.indexOf(boulderLocations)
-                val curIndex = index
-                val growth = curIndex - indexOf + 1
-                val toCheck = (1000000000 - curIndex) % growth
-                val result = memory.withIndex().first { it.index == toCheck + indexOf - 1 }.value
-                val max = parsed.keys.maxOf { it.first } + 1
-                println(memory.map { it.sumOf { max - it.first } })
-                return result.sumOf { max - it.first }
-            }
-            index++
-        }
-        error("")
-    }
+    class State(initial: List<Node>) {
+        val indexes = mutableListOf(initial)
+        val memory = mutableSetOf(initial.map(Node::pos))
+        var cycleIndex: Int = 0
 
-    class Cycle(initial: List<Point>, val graph: Map<Point, Node>){
-        val memory = mutableListOf(initial)
-        fun cycle(): Cycle? = apply {
-            val newBoulders = Direction.entries.fold(memory.last()){ boulders, direction ->
-                boulders.sortedWith(direction.sortDirection)
-                    .map(graph::getValue)
-                    .map { it.moveBoulder(direction) }
+        init {
+            while (true) {
+                var boulderLocations = indexes.last()
+                Direction.entries.forEach { direction ->
+                    boulderLocations = boulderLocations
+                        .sortedWith(direction.sortDirection)
+                        .map { it.moveBoulder(direction) }
+                }
+                if (!memory.add(boulderLocations.map(Node::pos))) {
+                    cycleIndex = indexes.indexOf(boulderLocations)
+                    break
+                }
+                indexes.add(boulderLocations)
             }
-            if(memory.contains(newBoulders)){
-                val indexOf = memory.indexOf(newBoulders)
-                val curIndex = memory.size
-                val growth = curIndex - indexOf + 1
+        }
+
+        fun stateAtIndex(index: Int): List<Node> {
+            return when(index < cycleIndex){
+                true -> indexes[index]
+                else -> indexes.subList(cycleIndex, indexes.size).let { it[(index - cycleIndex) % it.size] }
             }
-            return null
         }
     }
 
-    enum class Direction(val direction: Point, val sortDirection: Comparator<Point>) {
-        NORTH(-1 to 0, compareBy(Point::first, Point::second)),
-        WEST(0 to -1, compareBy(Point::second, Point::first)),
-        SOUTH(1 to 0, compareByDescending(Point::first).thenBy(Point::second)),
-        EAST(0 to 1, compareByDescending(Point::second).thenBy(Point::first)),
+    override fun part2(): Any {
+        return State(parsed.values.filter { it.currentItem == 'O' }).stateAtIndex(1000000000).sumOf { max - it.pos.first }
+    }
+
+    enum class Direction(val direction: Point, val sortDirection: Comparator<Node>) {
+        NORTH(-1 to 0, compareBy<Node> { it.pos.first }.thenBy { it.pos.second }),
+        WEST(0 to -1, compareBy<Node> { it.pos.second }.thenBy { it.pos.first }),
+        SOUTH(1 to 0, compareByDescending<Node> { it.pos.first }.thenBy { it.pos.second }),
+        EAST(0 to 1, compareByDescending<Node> { it.pos.second }.thenBy { it.pos.first }),
     }
 
     class Node(
@@ -104,10 +90,10 @@ object Day14 : Challenge() {
     ) {
         val neighbours by lazy { Direction.entries.associateBy({ it }, { graph[pos + it.direction] }) }
 
-        fun moveBoulder(dir: Direction): Point {
+        fun moveBoulder(dir: Direction): Node {
             val node = neighbours[dir]
             return when (node?.currentItem) {
-                null, 'O', '#' -> pos
+                null, 'O', '#' -> this
                 else -> {
                     node.currentItem = 'O'
                     currentItem = '.'
