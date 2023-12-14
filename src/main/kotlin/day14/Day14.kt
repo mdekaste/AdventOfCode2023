@@ -56,7 +56,6 @@ object Day14 : Challenge() {
                     .map { it.moveBoulder(direction) }
             }
             if (!memory.add(boulderLocations)) {
-
                 val indexOf = memory.indexOf(boulderLocations)
                 val curIndex = index
                 val growth = curIndex - indexOf + 1
