@@ -2,6 +2,7 @@ package day14
 
 import Challenge
 import Point
+import java.util.EnumMap
 
 fun main() {
     // Day14.part1().let(::println)
@@ -9,8 +10,13 @@ fun main() {
 }
 
 object Day14 : Challenge() {
+    override fun part1(): Any? {
+        return null
+    }
+
     val state: State
     val yMax: Int
+
     init {
         val parsed = buildMap {
             input.lines().forEachIndexed { y, s ->
@@ -21,10 +27,6 @@ object Day14 : Challenge() {
         }
         state = State(parsed.values.filter { it.currentItem == 'O' })
         yMax = parsed.keys.last().first + 1
-    }
-
-    override fun part1(): Any? {
-        return null
     }
 
     class State(initial: List<Node>) {
@@ -64,7 +66,9 @@ object Day14 : Challenge() {
     }
 
     class Node(val pos: Point, var currentItem: Char, graph: Map<Point, Node>) {
-        val neighbours by lazy { Direction.entries.associateBy({ it }, { graph[pos + it.direction] }) }
+        private val neighbours by lazy {
+            Direction.entries.associateByTo(EnumMap(Direction::class.java), { it }, { graph[pos + it.direction] })
+        }
 
         fun moveBoulder(dir: Direction): Node {
             val node = neighbours[dir]
