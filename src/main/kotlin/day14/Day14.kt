@@ -9,21 +9,26 @@ fun main() {
 }
 
 object Day14 : Challenge() {
-    val parsed get() = buildMap {
+    val parsed = buildMap {
         input.lines().forEachIndexed { y, s ->
             s.forEachIndexed { x, c ->
                 put(y to x, Node(y to x, c, this))
             }
         }
     }
+    val max = parsed.keys.last().first + 1
+
     override fun part1(): Any? {
-        val boulders = parsed.values.filter { it.currentItem == 'O' }
-        boulders.forEach { b ->
-            b.moveUp()
-        }
-        val max = parsed.keys.maxOf { it.first } + 1
-        print()
-        return parsed.values.filter { it.currentItem == 'O' }.map { max - it.pos.first }.sum()
+        return null
+//        val canvas = parsed.toMutableMap()
+//
+//        val boulders = parsed.values.filter { it.currentItem == 'O' }
+//        boulders.forEach { b ->
+//            b.moveUp()
+//        }
+//        val max = parsed.keys.maxOf { it.first } + 1
+//        print()
+//        return parsed.values.filter { it.currentItem == 'O' }.map { max - it.pos.first }.sum()
     }
 
     fun print() {
@@ -39,81 +44,55 @@ object Day14 : Challenge() {
     }
 
     override fun part2(): Any? {
-        var curBoulders = parsed.toMap()
-        val memory = LinkedHashSet<List<Pair<Point, Char>>>().apply { add(curBoulders.toKey()) }
+        val nodes = parsed.values
+        var boulderLocations = nodes.filter { it.currentItem == 'O' }.map { it.pos }
+        var memory = mutableSetOf(boulderLocations)
         var index = 0
-        while(true){
-            curBoulders = curBoulders.toSortedMap(compareBy(Point::first, Point::second))
-            curBoulders.values.filter { it.currentItem == 'O' }.forEach { it.moveUp() }
-            curBoulders = curBoulders.toSortedMap(compareBy(Point::second).thenBy(Point::first))
-            curBoulders.values.filter { it.currentItem == 'O' }.forEach { it.moveLeft() }
-            curBoulders = curBoulders.toSortedMap(compareByDescending(Point::first).thenBy(Point::second))
-            curBoulders.values.filter { it.currentItem == 'O' }.forEach { it.moveDown() }
-            curBoulders = curBoulders.toSortedMap(compareByDescending(Point::second).thenBy(Point::first))
-            curBoulders.values.filter { it.currentItem == 'O' }.forEach { it.moveRight() }
-            val key = curBoulders.toKey()
-            if (!memory.add(key)) {
-                val indexOf = memory.indexOf(key)
+        while (true) {
+            Direction.entries.forEach { direction ->
+                boulderLocations = boulderLocations
+                    .sortedWith(direction.sortDirection)
+                    .map(parsed::getValue)
+                    .map { it.moveBoulder(direction) }
+            }
+            if (!memory.add(boulderLocations)) {
+
+                val indexOf = memory.indexOf(boulderLocations)
                 val curIndex = index
                 val growth = curIndex - indexOf + 1
                 val toCheck = (1000000000 - curIndex) % growth
                 val result = memory.withIndex().first { it.index == toCheck + indexOf - 1 }.value
                 val max = parsed.keys.maxOf { it.first } + 1
-                return result.filter { it.second == 'O' }.sumOf { max - it.first.first }
+                println(memory.map { it.sumOf { max - it.first } })
+                return result.sumOf { max - it.first }
             }
             index++
         }
         error("")
     }
 
-    private fun Map<Point, Node>.toKey() = entries.map { it.key to it.value.currentItem }
+    enum class Direction(val direction: Point, val sortDirection: Comparator<Point>) {
+        NORTH(-1 to 0, compareBy(Point::first, Point::second)),
+        WEST(0 to -1, compareBy(Point::second, Point::first)),
+        SOUTH(1 to 0, compareByDescending(Point::first).thenBy(Point::second)),
+        EAST(0 to 1, compareByDescending(Point::second).thenBy(Point::first)),
+    }
 
     class Node(
         val pos: Point,
         var currentItem: Char,
         map: Map<Point, Node>,
     ) {
-        val north by lazy { map[pos + NORTH] }
-        val east by lazy { map[pos + EAST] }
-        val south by lazy { map[pos + SOUTH] }
-        val west by lazy { map[pos + WEST] }
-        fun moveUp() {
-            when (val item = north?.currentItem) {
-                null, 'O', '#' -> return
+        val neighbours by lazy { Direction.entries.associateBy({ it }, { map[pos + it.direction] }) }
+
+        fun moveBoulder(dir: Direction): Point {
+            val node = neighbours[dir]
+            return when (node?.currentItem) {
+                null, 'O', '#' -> pos
                 else -> {
-                    north!!.currentItem = 'O'
+                    node.currentItem = 'O'
                     currentItem = '.'
-                    north!!.moveUp()
-                }
-            }
-        }
-        fun moveRight() {
-            when (val itemNorth = east?.currentItem) {
-                null, 'O', '#' -> return
-                else -> {
-                    east!!.currentItem = 'O'
-                    currentItem = '.'
-                    east!!.moveRight()
-                }
-            }
-        }
-        fun moveDown() {
-            when (val itemNorth = south?.currentItem) {
-                null, 'O', '#' -> return
-                else -> {
-                    south!!.currentItem = 'O'
-                    currentItem = '.'
-                    south!!.moveDown()
-                }
-            }
-        }
-        fun moveLeft() {
-            when (val itemNorth = west?.currentItem) {
-                null, 'O', '#' -> return
-                else -> {
-                    west!!.currentItem = 'O'
-                    currentItem = '.'
-                    west!!.moveLeft()
+                    node.moveBoulder(dir)
                 }
             }
         }
