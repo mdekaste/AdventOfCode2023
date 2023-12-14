@@ -9,29 +9,22 @@ fun main() {
 }
 
 object Day14 : Challenge() {
-    val parsed = buildMap {
-        input.lines().forEachIndexed { y, s ->
-            s.forEachIndexed { x, c ->
-                put(y to x, Node(y to x, c, this))
+    val initialNodes: List<Node>
+    val yMax: Int
+    init {
+        val parsed = buildMap {
+            input.lines().forEachIndexed { y, s ->
+                s.forEachIndexed { x, c ->
+                    put(y to x, Node(y to x, c, this))
+                }
             }
         }
+        initialNodes = parsed.values.filter { it.currentItem == 'O' }
+        yMax = parsed.keys.last().first + 1
     }
-    val max = parsed.keys.last().first + 1
 
     override fun part1(): Any? {
         return null
-    }
-
-    fun print() {
-        println("---")
-        val yMax = parsed.maxOf { it.key.first }
-        val xMax = parsed.maxOf { it.key.second }
-        for (y in 0..yMax) {
-            for (x in 0..xMax) {
-                print(parsed.getValue(y to x).currentItem)
-            }
-            println()
-        }
     }
 
     class State(initial: List<Node>) {
@@ -62,7 +55,7 @@ object Day14 : Challenge() {
     }
 
     override fun part2(): Any {
-        return State(parsed.values.filter { it.currentItem == 'O' }).stateAtIndex(1000000000).sumOf { max - it.pos.first }
+        return State(initialNodes).stateAtIndex(1000000000).sumOf { yMax - it.pos.first }
     }
 
     enum class Direction(val direction: Point, val sortDirection: Comparator<Node>) {
