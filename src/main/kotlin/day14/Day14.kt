@@ -20,15 +20,6 @@ object Day14 : Challenge() {
 
     override fun part1(): Any? {
         return null
-//        val canvas = parsed.toMutableMap()
-//
-//        val boulders = parsed.values.filter { it.currentItem == 'O' }
-//        boulders.forEach { b ->
-//            b.moveUp()
-//        }
-//        val max = parsed.keys.maxOf { it.first } + 1
-//        print()
-//        return parsed.values.filter { it.currentItem == 'O' }.map { max - it.pos.first }.sum()
     }
 
     fun print() {
@@ -64,11 +55,9 @@ object Day14 : Challenge() {
             }
         }
 
-        fun stateAtIndex(index: Int): List<Node> {
-            return when(index < cycleIndex){
-                true -> indexes[index]
-                else -> indexes.subList(cycleIndex, indexes.size).let { it[(index - cycleIndex) % it.size] }
-            }
+        fun stateAtIndex(index: Int) = when (index < cycleIndex) {
+            true -> indexes[index]
+            else -> indexes.subList(cycleIndex, indexes.size).let { it[(index - cycleIndex) % it.size] }
         }
     }
 
