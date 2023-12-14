@@ -9,7 +9,7 @@ fun main() {
 }
 
 object Day14 : Challenge() {
-    val initialNodes: List<Node>
+    val state: State
     val yMax: Int
     init {
         val parsed = buildMap {
@@ -19,7 +19,7 @@ object Day14 : Challenge() {
                 }
             }
         }
-        initialNodes = parsed.values.filter { it.currentItem == 'O' }
+        state = State(parsed.values.filter { it.currentItem == 'O' })
         yMax = parsed.keys.last().first + 1
     }
 
@@ -54,9 +54,7 @@ object Day14 : Challenge() {
         }
     }
 
-    override fun part2(): Any {
-        return State(initialNodes).stateAtIndex(1000000000).sumOf { yMax - it.pos.first }
-    }
+    override fun part2() = state.stateAtIndex(1000000000).sumOf { yMax - it.pos.first }
 
     enum class Direction(val direction: Point, val sortDirection: Comparator<Node>) {
         NORTH(-1 to 0, compareBy<Node> { it.pos.first }.thenBy { it.pos.second }),
@@ -65,11 +63,7 @@ object Day14 : Challenge() {
         EAST(0 to 1, compareByDescending<Node> { it.pos.second }.thenBy { it.pos.first }),
     }
 
-    class Node(
-        val pos: Point,
-        var currentItem: Char,
-        graph: Map<Point, Node>,
-    ) {
+    class Node(val pos: Point, var currentItem: Char, graph: Map<Point, Node>) {
         val neighbours by lazy { Direction.entries.associateBy({ it }, { graph[pos + it.direction] }) }
 
         fun moveBoulder(dir: Direction): Node {
