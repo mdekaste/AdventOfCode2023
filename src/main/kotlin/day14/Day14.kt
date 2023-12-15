@@ -25,38 +25,57 @@ object Day14 : Challenge() {
                 }
             }
         }
-        state = State(parsed.values.filter { it.currentItem == 'O' })
+        state = State(parsed.values.filter { it.currentItem is Item.Boulder })
         yMax = parsed.keys.last().first + 1
     }
 
     class State(initial: List<Node>) {
-        val indexes = mutableListOf(initial)
-        val memory = mutableSetOf(initial.map(Node::pos))
-        var cycleIndex: Int = 0
+        val boulders = initial.associateBy({ it.currentItem as Item.Boulder }, { Cycle(mutableSetOf(it.pos)) })
 
         init {
+            var boulderLocations = initial
             while (true) {
-                var boulderLocations = indexes.last()
                 Direction.entries.forEach { direction ->
                     boulderLocations = boulderLocations
                         .sortedWith(direction.sortDirection)
                         .map { it.moveBoulder(direction) }
                 }
-                if (!memory.add(boulderLocations.map(Node::pos))) {
-                    cycleIndex = indexes.indexOf(boulderLocations)
+                var allTrue: Boolean = true
+                for (boulderNode in boulderLocations) {
+                    val boulder = boulderNode.currentItem as Item.Boulder
+                    if (!boulders.getValue(boulder).add(boulderNode.pos)) {
+                        allTrue = false
+                    }
+                }
+                if (allTrue) {
                     break
                 }
-                indexes.add(boulderLocations)
             }
         }
 
-        fun stateAtIndex(index: Int) = when (index < cycleIndex) {
-            true -> indexes[index]
-            else -> indexes.subList(cycleIndex, indexes.size).let { it[(index - cycleIndex) % it.size] }
+        fun stateAtIndex(index: Int): List<Point> = boulders.values.map { it.get(index) }
+
+        data class Cycle(
+            val set: MutableSet<Point>,
+            var cycleIndex: Int = 0,
+        ) {
+            fun add(boulder: Point): Boolean {
+                if (!set.add(boulder)) {
+                    if (cycleIndex != 0) {
+                        cycleIndex = set.indexOf(boulder)
+                    }
+                    return true
+                }
+                return false
+            }
+            fun get(index: Int): Point = when (index < cycleIndex) {
+                true -> set.toList()[index]
+                else -> set.toList().subList(cycleIndex, set.size).let { it[(index - cycleIndex) % it.size] }
+            }
         }
     }
 
-    override fun part2() = state.stateAtIndex(1000000000).sumOf { yMax - it.pos.first }
+    override fun part2() = state.stateAtIndex(1000000000).sumOf { yMax - it.first }
 
     enum class Direction(val direction: Point, val sortDirection: Comparator<Node>) {
         NORTH(-1 to 0, compareBy<Node> { it.pos.first }.thenBy { it.pos.second }),
@@ -65,7 +84,14 @@ object Day14 : Challenge() {
         EAST(0 to 1, compareByDescending<Node> { it.pos.second }.thenBy { it.pos.first }),
     }
 
-    class Node(val pos: Point, var currentItem: Char, graph: Map<Point, Node>) {
+    class Node(val pos: Point, currentItem: Char, graph: Map<Point, Node>) {
+        var currentItem = when (currentItem) {
+            'O' -> Item.Boulder(pos)
+            '#' -> Item.Wall
+            '.' -> Item.Floor
+            else -> null
+        }
+
         private val neighbours by lazy {
             Direction.entries.associateByTo(EnumMap(Direction::class.java), { it }, { graph[pos + it.direction] })
         }
@@ -73,13 +99,19 @@ object Day14 : Challenge() {
         fun moveBoulder(dir: Direction): Node {
             val node = neighbours[dir]
             return when (node?.currentItem) {
-                null, 'O', '#' -> this
+                null, Item.Wall, is Item.Boulder -> this
                 else -> {
-                    node.currentItem = 'O'
-                    currentItem = '.'
+                    node.currentItem = currentItem
+                    currentItem = Item.Floor
                     node.moveBoulder(dir)
                 }
             }
         }
+    }
+
+    sealed interface Item {
+        data object Wall : Item
+        data object Floor : Item
+        data class Boulder(val originalPos: Point) : Item
     }
 }
