@@ -5,6 +5,7 @@ import Challenge
 fun main() {
     Day15.part1().let(::println)
     Day15.part2().let(::println)
+    Day15.solve().let(::println)
 }
 
 object Day15 : Challenge() {
@@ -14,12 +15,8 @@ object Day15 : Challenge() {
     override fun part1() = parsed.map(::hash).sum()
 
     override fun part2() = parsed.fold(MutableList(256) { mutableMapOf<String, Int>() }) { acc, line ->
-        acc.apply {
-            val (value, focalLength) = line.split("=", "-")
-            when ("-" in line) {
-                true -> this[hash(value)] -= value
-                false -> this[hash(value)][value] = focalLength.toInt()
-            }
-        }
+        val (value, focalLength) = line.split("=", "-")
+        if ("-" in line) acc[hash(value)] -= value else acc[hash(value)][value] = focalLength.toInt()
+        acc
     }.withIndex().sumOf { (i, map) -> (i + 1) * map.values.withIndex().sumOf { (j, value) -> (j + 1) * value } }
 }
