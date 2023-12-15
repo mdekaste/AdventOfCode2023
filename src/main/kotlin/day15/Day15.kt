@@ -1,14 +1,23 @@
 package day15
 
 import Challenge
+import kotlin.time.measureTimedValue
 
 fun main() {
-    Day15.part1().let(::println)
-    Day15.part2().let(::println)
-    Day15.solve().let(::println)
+    repeat(10000) {
+        val day = Day15()
+        day.part1()
+        day.part2()
+    }
+    val (day, time) = measureTimedValue { Day15() }
+    println("Reading input takes: $time")
+    val (part1, timePart1) = measureTimedValue { day.part1() }
+    println("Part 1 is $part1 and takes $timePart1")
+    val (part2, timePart2) = measureTimedValue { day.part2() }
+    println("Part 2 is $part2 and takes $timePart2")
 }
 
-object Day15 : Challenge() {
+class Day15 : Challenge() {
     val parsed = input.split(",")
 
     private fun hash(input: String): Int = input.fold(0) { hash, c -> ((hash + c.code) * 17) % 256 }
