@@ -28,7 +28,7 @@ object Day16 : Challenge() {
                 }
             }
         }(point to direction)
-    }.map { it.first }.distinct().size
+    }.distinctBy { it.first }.size
 
     override fun part1(): Int = solve(0 to 0, E)
 
