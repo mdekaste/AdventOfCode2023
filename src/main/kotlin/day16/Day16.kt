@@ -14,7 +14,6 @@ fun main() {
 }
 
 class Day16 : Challenge() {
-
     private val parsed = input.lines()
     private val graph = buildMap {
         parsed.forEachIndexed { y, s ->
@@ -25,9 +24,9 @@ class Day16 : Challenge() {
     }
 
     override fun part1() = solve(listOf((0 to -1) to (0 to 0)))
-    override fun part2() = solve(generateOptions(parsed))
+    override fun part2() = solve(startOptions(parsed))
 
-    private fun generateOptions(parsed: List<String>) = buildList {
+    private fun startOptions(parsed: List<String>) = buildList {
         val height = parsed.size
         val width = parsed.first().length
         for (x in parsed.first().indices) {
@@ -41,17 +40,62 @@ class Day16 : Challenge() {
     }
 
     fun solve(startPoints: List<Pair<Point, Point>>): Int = startPoints.maxOf { (s1, s2) ->
-        val curSet = mutableListOf(s1 to graph.getValue(s2))
-        val visited = mutableSetOf(s1 to graph.getValue(s2))
-        while (curSet.isNotEmpty()) {
-            val (from, cur) = curSet.removeLast()
-            cur.reflections[from]?.forEach {
-                if (visited.add(cur.pos to it)) {
-                    curSet.add(cur.pos to it)
+        buildSet {
+            add(s1 to s2)
+            DeepRecursiveFunction<Pair<Point, Point>, Unit> { (from, cur) ->
+                graph.getValue(cur).reflections.getValue(from).forEach {
+                    if (add(cur to it.pos)) {
+                        callRecursive(cur to it.pos)
+                    }
                 }
-            }
-        }
-        visited.map { it.second }.distinct().size
+            }(s1 to s2)
+        }.map { it.second }.distinct().size
+    }
+}
+
+enum class Tile(val character: Char, val reflections: Map<Point, List<Point>>) {
+    VERT(
+        '|', mapOf(
+            WEST to listOf(NORTH, SOUTH),
+            EAST to listOf(NORTH, SOUTH),
+            NORTH to listOf(SOUTH),
+            SOUTH to listOf(NORTH)
+        )
+    ),
+    SLASH(
+        '/', mapOf(
+            WEST to listOf(NORTH),
+            EAST to listOf(SOUTH),
+            NORTH to listOf(WEST),
+            SOUTH to listOf(EAST)
+        )
+    ),
+    DOT(
+        '.', mapOf(
+            WEST to listOf(EAST),
+            EAST to listOf(WEST),
+            NORTH to listOf(SOUTH),
+            SOUTH to listOf(NORTH)
+        )
+    ),
+    HOR(
+        '-', mapOf(
+            WEST to listOf(EAST),
+            EAST to listOf(WEST),
+            NORTH to listOf(WEST, EAST),
+            SOUTH to listOf(WEST, EAST)
+        )
+    ),
+    BACK(
+        '\\', mapOf(
+            WEST to listOf(SOUTH),
+            EAST to listOf(NORTH),
+            NORTH to listOf(EAST),
+            SOUTH to listOf(WEST)
+        )
+    );
+    companion object{
+        val MAP = entries.associateBy { it.character }
     }
 }
 
@@ -61,40 +105,7 @@ class Node(
     graph: Map<Point, Node>
 ) {
     val reflections: Map<Point, List<Node>> by lazy {
-        val neighbours = listOf(NORTH, SOUTH, WEST, EAST)
-            .filter { graph.containsKey(it + pos) }
-            .associateWith { graph.getValue(it + pos) }
-
-        listOf(NORTH, SOUTH, WEST, EAST).associateBy({ it + pos }, {
-            when (it) {
-                WEST -> when (character) {
-                    '.', '-' -> listOfNotNull(neighbours[EAST])
-                    '|' -> listOfNotNull(neighbours[NORTH], neighbours[SOUTH])
-                    '/' -> listOfNotNull(neighbours[NORTH])
-                    else -> listOfNotNull(neighbours[SOUTH])
-                }
-
-                EAST -> when (character) {
-                    '.', '-' -> listOfNotNull(neighbours[WEST])
-                    '|' -> listOfNotNull(neighbours[NORTH], neighbours[SOUTH])
-                    '/' -> listOfNotNull(neighbours[SOUTH])
-                    else -> listOfNotNull(neighbours[NORTH])
-                }
-
-                NORTH -> when (character) {
-                    '.', '|' -> listOfNotNull(neighbours[SOUTH])
-                    '-' -> listOfNotNull(neighbours[EAST], neighbours[WEST])
-                    '/' -> listOfNotNull(neighbours[WEST])
-                    else -> listOfNotNull(neighbours[EAST])
-                }
-
-                else -> when (character) {
-                    '.', '|' -> listOfNotNull(neighbours[NORTH])
-                    '-' -> listOfNotNull(neighbours[EAST], neighbours[WEST])
-                    '/' -> listOfNotNull(neighbours[EAST])
-                    else -> listOfNotNull(neighbours[WEST])
-                }
-            }
-        })
+        Tile.MAP.getValue(character).reflections.mapKeys { (key, _) -> key + pos }
+            .mapValues { (_, values) -> values.mapNotNull { graph[it + pos] } }
     }
 }
