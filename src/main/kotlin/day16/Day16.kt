@@ -41,17 +41,16 @@ class Day16 : Challenge() {
     }
 
     fun solve(startPoints: List<Pair<Point, Point>>): Int = startPoints.maxOf { (s1, s2) ->
-        val curSet = mutableListOf(s1 to graph.getValue(s2))
-        val visited = mutableSetOf(s1 to graph.getValue(s2))
-        while (curSet.isNotEmpty()) {
-            val (from, cur) = curSet.removeLast()
-            cur.reflections[from]?.forEach {
-                if (visited.add(cur.pos to it)) {
-                    curSet.add(cur.pos to it)
+        buildSet {
+            add(s1 to s2)
+            DeepRecursiveFunction<Pair<Point, Point>, Unit> { (from, cur) ->
+                graph.getValue(cur).reflections.getValue(from).forEach {
+                    if (add(cur to it.pos)) {
+                        callRecursive(cur to it.pos)
+                    }
                 }
-            }
-        }
-        visited.map { it.second }.distinct().size
+            }(s1 to s2)
+        }.map { it.second }.distinct().size
     }
 }
 
