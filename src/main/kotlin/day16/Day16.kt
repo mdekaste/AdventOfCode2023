@@ -5,95 +5,58 @@ import Challenge.Companion.EAST
 import Challenge.Companion.NORTH
 import Challenge.Companion.SOUTH
 import Challenge.Companion.WEST
-import Challenge.Companion.plus
 import Point
+import day16.Direction.*
 
 fun main() {
-    Day16().part1().let(::println)
-    Day16().part2().let(::println)
+    Day16.part1().let(::println)
+    Day16.part2().let(::println)
+    Day16.solve().let(::println)
 }
 
-class Day16 : Challenge() {
+object Day16 : Challenge() {
 
-    private val parsed = input.lines()
-    private val graph = buildMap {
-        parsed.forEachIndexed { y, s ->
-            s.forEachIndexed { x, c ->
-                put(y to x, Node(y to x, c, this))
+    private val graph = input.lines().flatMapIndexed { y, s ->
+        s.mapIndexed { x, c -> y to x to Mirror.MAP.getValue(c) }
+    }.toMap()
+
+    val pathFinder =
+        DeepRecursiveFunction<Triple<Point, Direction, MutableSet<Pair<Point, Direction>>>, Unit> { (point, direction, set) ->
+            if (point in graph.keys && set.add(point to direction)) {
+                graph.getValue(point).fromTo.getValue(direction).forEach {
+                    callRecursive(Triple(point + it.position, it, set))
+                }
             }
         }
-    }
 
-    override fun part1() = solve(listOf((0 to -1) to (0 to 0)))
-    override fun part2() = solve(generateOptions(parsed))
+    fun solve(point: Point, direction: Direction) = buildSet {
+        pathFinder(Triple(point, direction, this))
+    }.map { it.first }.distinct().size
 
-    private fun generateOptions(parsed: List<String>) = buildList {
-        val height = parsed.size
-        val width = parsed.first().length
-        for (x in parsed.first().indices) {
-            add((-1 to x) to (0 to x))
-            add((height to x) to (height - 1 to x))
-        }
-        for (y in parsed.indices) {
-            add((y to -1) to (y to 0))
-            add((y to width) to (y to width - 1))
-        }
-    }
+    override fun part1(): Int = solve(0 to 0, E)
 
-    fun solve(startPoints: List<Pair<Point, Point>>): Int = startPoints.maxOf { (s1, s2) ->
-        buildSet {
-            add(s1 to s2)
-            DeepRecursiveFunction<Pair<Point, Point>, Unit> { (from, cur) ->
-                graph.getValue(cur).reflections.getValue(from).forEach {
-                    if (add(cur to it.pos)) {
-                        callRecursive(cur to it.pos)
-                    }
-                }
-            }(s1 to s2)
-        }.map { it.second }.distinct().size
-    }
+    override fun part2() = buildList {
+        val yMax = graph.maxOf { it.key.first }
+        val xMax = graph.maxOf { it.key.second }
+        graph.keys.filter { it.first == 0 }.mapTo(this) { S to it }
+        graph.keys.filter { it.second == 0 }.mapTo(this) { E to it }
+        graph.keys.filter { it.first == yMax }.mapTo(this) { N to it }
+        graph.keys.filter { it.second == xMax }.mapTo(this) { W to it }
+    }.maxOf { solve(it.second, it.first) }
 }
 
-class Node(
-    val pos: Point,
-    val character: Char,
-    graph: Map<Point, Node>
-) {
-    val reflections: Map<Point, List<Node>> by lazy {
-        val neighbours = listOf(NORTH, SOUTH, WEST, EAST)
-            .filter { graph.containsKey(it + pos) }
-            .associateWith { graph.getValue(it + pos) }
+enum class Direction(val position: Point) {
+    N(NORTH), E(EAST), S(SOUTH), W(WEST)
+}
 
-        listOf(NORTH, SOUTH, WEST, EAST).associateBy({ it + pos }, {
-            when (it) {
-                WEST -> when (character) {
-                    '.', '-' -> listOfNotNull(neighbours[EAST])
-                    '|' -> listOfNotNull(neighbours[NORTH], neighbours[SOUTH])
-                    '/' -> listOfNotNull(neighbours[NORTH])
-                    else -> listOfNotNull(neighbours[SOUTH])
-                }
+enum class Mirror(val character: Char, val fromTo: Map<Direction, Array<Direction>>) {
+    VERT('|', mapOf(N to arrayOf(N), E to arrayOf(N, S), S to arrayOf(S), W to arrayOf(N, S))),
+    HOR('-', mapOf(N to arrayOf(W, E), E to arrayOf(E), S to arrayOf(W, E), W to arrayOf(W))),
+    SLASH('/', mapOf(N to arrayOf(E), E to arrayOf(N), S to arrayOf(W), W to arrayOf(S))),
+    BACK('\\', mapOf(N to arrayOf(W), E to arrayOf(S), S to arrayOf(E), W to arrayOf(N))),
+    DOT('.', mapOf(N to arrayOf(N), E to arrayOf(E), S to arrayOf(S), W to arrayOf(W)));
 
-                EAST -> when (character) {
-                    '.', '-' -> listOfNotNull(neighbours[WEST])
-                    '|' -> listOfNotNull(neighbours[NORTH], neighbours[SOUTH])
-                    '/' -> listOfNotNull(neighbours[SOUTH])
-                    else -> listOfNotNull(neighbours[NORTH])
-                }
-
-                NORTH -> when (character) {
-                    '.', '|' -> listOfNotNull(neighbours[SOUTH])
-                    '-' -> listOfNotNull(neighbours[EAST], neighbours[WEST])
-                    '/' -> listOfNotNull(neighbours[WEST])
-                    else -> listOfNotNull(neighbours[EAST])
-                }
-
-                else -> when (character) {
-                    '.', '|' -> listOfNotNull(neighbours[NORTH])
-                    '-' -> listOfNotNull(neighbours[EAST], neighbours[WEST])
-                    '/' -> listOfNotNull(neighbours[EAST])
-                    else -> listOfNotNull(neighbours[WEST])
-                }
-            }
-        })
+    companion object {
+        val MAP = entries.associateBy { it.character }
     }
 }

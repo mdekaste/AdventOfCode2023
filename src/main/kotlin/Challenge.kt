@@ -12,11 +12,13 @@ abstract class Challenge(
     abstract fun part2(): Any?
 
     fun solve(): Any? {
-        repeat(1000) {
+        repeat(100) {
             part1()
             part2()
         }
-        return measureTimedValue { listOf(name, part1(), part2()) }
+        val part1 = measureTimedValue { part1() }
+        val part2 = measureTimedValue { part2() }
+        return "$part1 $part2 ${part1.duration + part2.duration}"
     }
 
     companion object {
