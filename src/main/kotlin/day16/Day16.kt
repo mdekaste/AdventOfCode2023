@@ -20,17 +20,14 @@ object Day16 : Challenge() {
         s.mapIndexed { x, c -> y to x to Mirror.MAP.getValue(c) }
     }.toMap()
 
-    val pathFinder =
-        DeepRecursiveFunction<Triple<Point, Direction, MutableSet<Pair<Point, Direction>>>, Unit> { (point, direction, set) ->
-            if (point in graph.keys && set.add(point to direction)) {
+    fun solve(point: Point, direction: Direction) = buildSet {
+        DeepRecursiveFunction<Pair<Point, Direction>, Unit> { (point, direction) ->
+            if (point in graph.keys && add(point to direction)) {
                 graph.getValue(point).fromTo.getValue(direction).forEach {
-                    callRecursive(Triple(point + it.position, it, set))
+                    callRecursive(point + it.position to it)
                 }
             }
-        }
-
-    fun solve(point: Point, direction: Direction) = buildSet {
-        pathFinder(Triple(point, direction, this))
+        }(point to direction)
     }.map { it.first }.distinct().size
 
     override fun part1(): Int = solve(0 to 0, E)
