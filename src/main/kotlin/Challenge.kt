@@ -1,3 +1,4 @@
+
 import java.io.File
 import kotlin.time.measureTimedValue
 
@@ -36,5 +37,15 @@ abstract class Challenge(
         fun Point.neighbours4() = listOf(NORTH, EAST, SOUTH, WEST).map { it + this }
         fun Point.neighbours8() =
             listOf(NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST, NORTH_WEST).map { it + this }
+
     }
+
+    enum class Direction(val position: Point) {
+        N(NORTH), E(EAST), S(SOUTH), W(WEST);
+        operator fun not() = Direction.entries - this
+        operator fun unaryMinus() = Direction.entries[(ordinal + 2) % 4]
+        val perpendicular by lazy { listOf(Direction.entries[(ordinal + 1) % 4], Direction.entries[(ordinal + 3) % 4]) }
+    }
+
+
 }

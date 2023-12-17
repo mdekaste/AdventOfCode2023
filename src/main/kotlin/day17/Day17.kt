@@ -2,7 +2,6 @@ package day17
 
 import Challenge
 import Point
-import day16.Direction
 import java.util.*
 
 fun main() {
@@ -18,7 +17,12 @@ object Day17 : Challenge() {
     private val startPoint = 0 to 0
     private val endPoint = (parsed.maxOf { it.key.first }) to (parsed.maxOf { it.key.second })
 
-    data class State(val point: Point = startPoint, val direction: Direction, val moveMemory: Int = 1, val score: Int = 0)
+    data class State(
+        val point: Point = startPoint,
+        val direction: Direction,
+        val moveMemory: Int = 1,
+        val score: Int = 0
+    )
 
     override fun part1() = solve(0, 3)
     override fun part2() = solve(4, 10)
@@ -32,23 +36,24 @@ object Day17 : Challenge() {
             add(State(startPoint, Direction.E, 1, 0))
             add(State(startPoint, Direction.S, 1, 0))
         }
-        while(queue.isNotEmpty()){
+        fun add(state: State) {
+            if (visited.add(Triple(state.point, state.direction, state.moveMemory))) {
+                queue.offer(state)
+            }
+        }
+        while (queue.isNotEmpty()) {
             val (point, direction, forwardCount, score) = queue.poll()
             val nextPoint = point + direction.position
             val nextScore = score + (parsed[nextPoint] ?: continue)
-            if(nextPoint == endPoint){
+            if (nextPoint == endPoint) {
                 return nextScore
             }
-            if(forwardCount < maximumForward){
-                if(visited.add(Triple(nextPoint, direction, forwardCount + 1))){
-                    queue.offer(State(nextPoint, direction, forwardCount + 1, nextScore))
-                }
+            if (forwardCount < maximumForward) {
+                add(State(nextPoint, direction, forwardCount + 1, nextScore))
             }
-            if(forwardCount >= minimalForward){
-                (Direction.entries - direction - direction.opposite()).forEach { nextDirection ->
-                    if(visited.add(Triple(nextPoint, nextDirection, 1))) {
-                        queue.offer(State(nextPoint, nextDirection, 1, nextScore))
-                    }
+            if (forwardCount >= minimalForward) {
+                direction.perpendicular.forEach {
+                    add(State(nextPoint, it, 1, nextScore))
                 }
             }
         }

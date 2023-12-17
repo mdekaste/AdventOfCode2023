@@ -1,12 +1,9 @@
 package day16
 
 import Challenge
-import Challenge.Companion.EAST
-import Challenge.Companion.NORTH
-import Challenge.Companion.SOUTH
-import Challenge.Companion.WEST
+import Challenge.Direction
+import Challenge.Direction.*
 import Point
-import day16.Direction.*
 
 fun main() {
     Day16.part1().let(::println)
@@ -40,12 +37,6 @@ object Day16 : Challenge() {
         graph.keys.filter { it.first == yMax }.mapTo(this) { N to it }
         graph.keys.filter { it.second == xMax }.mapTo(this) { W to it }
     }.maxOf { solve(it.second, it.first) }
-}
-
-enum class Direction(val position: Point) {
-    N(NORTH), E(EAST), S(SOUTH), W(WEST);
-
-    fun opposite() = Direction.entries[(Direction.entries.indexOf(this) + 2) % 4]
 }
 
 enum class Mirror(val character: Char, val fromTo: Map<Direction, Array<Direction>>) {
