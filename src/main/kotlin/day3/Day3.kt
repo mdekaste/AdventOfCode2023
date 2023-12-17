@@ -1,79 +1,41 @@
 package day3
 
 import Challenge
+import winds
 
 fun main() {
     Day3.part1().let(::println)
     Day3.part2().let(::println)
 }
 
-typealias Point = Pair<Int, Int>
-
 object Day3 : Challenge() {
-    private var parts: Set<Part>
-    private var symbols: Set<Symbol>
-    init {
-        val graph = buildMap<Point, Segment> {
-            input.lines().forEachIndexed { y, line ->
-                line.forEachIndexed { x, char ->
-                    when {
-                        char.isDigit() -> put(
-                            key = y to x,
-                            value = get(y to x - 1).let { it as? Part ?: Part() }.apply {
-                                positions += y to x
-                                value = value * 10 + char.digitToInt()
-                            },
-                        )
-                        char != '.' -> put(
-                            key = y to x,
-                            value = Symbol(
-                                positions = listOf(y to x),
-                                char = char,
-                            ),
-                        )
-                    }
-                }
-            }
-        }.apply {
-            values.forEach { segment ->
-                listOf(-1 to -1, -1 to 0, -1 to 1, 0 to -1, 0 to 1, 1 to -1, 1 to 0, 1 to 1).forEach { (y, x) ->
-                    segment.positions.forEach { (baseY, baseX) ->
-                        this[baseY + y to baseX + x]?.also {
-                            segment.neighbours.add(it)
-                        }
-                    }
-                }
-            }
+    val matcher = """(\d+|[^\.])""".toRegex()
+    val parsed = input.lines().flatMapIndexed { y, s ->
+        matcher.findAll(s).map { Part(y, it) }.flatMap { p -> p.positions.map { it to p } }
+    }.toMap()
+
+    override fun part1() = parsed.values.distinct()
+        .filter { it.isValue() }
+        .filter { p -> p.neighbours().any { !it.isValue() } }
+        .sumOf { it.value() }
+
+    override fun part2() = parsed.values.distinct()
+        .filter { p -> p.isValue() }
+        .mapNotNull { p ->
+            p.neighbours().filter { it.isGear('*') }
+                .firstNotNullOfOrNull { it.neighbours().firstOrNull { it.isValue() && it != p } }
+                ?.let { p to it }
         }
-        parts = graph.values.filterIsInstance<Part>().toSet()
-        symbols = graph.values.filterIsInstance<Symbol>().toSet()
+        .sumOf { (a, b) -> a.value() * b.value() } / 2
+
+    class Part(y: Int, matchResult: MatchResult) {
+        val positions = matchResult.range.map { x -> y to x }
+        private val pure = matchResult.value
+        fun neighbours() =
+            positions.flatMapTo(mutableSetOf()) { it.winds() }.mapNotNullTo(mutableSetOf()) { parsed[it] }
+
+        fun value() = pure.toInt()
+        fun isValue() = pure.toIntOrNull() != null
+        fun isGear(char: Char? = null) = char?.let { it == pure[0] } ?: !isValue()
     }
-
-    sealed interface Segment {
-        val neighbours: MutableSet<Segment>
-        val positions: List<Pair<Int, Int>>
-    }
-
-    data class Part(
-        override val positions: MutableList<Pair<Int, Int>> = mutableListOf(),
-        var value: Int = 0,
-    ) : Segment {
-        override val neighbours: MutableSet<Segment> = mutableSetOf()
-    }
-
-    data class Symbol(
-        override val positions: List<Pair<Int, Int>>,
-        val char: Char,
-    ) : Segment {
-        override val neighbours: MutableSet<Segment> = mutableSetOf()
-    }
-
-    override fun part1() = parts
-        .filter { it.neighbours.any { it is Symbol } }
-        .sumOf { it.value }
-
-    override fun part2() = symbols
-        .filter { it.char == '*' }
-        .filter { it.neighbours.size == 2 && it.neighbours.all { it is Part } }
-        .sumOf { it.neighbours.filterIsInstance<Part>().let { (a, b) -> a.value * b.value } }
 }
