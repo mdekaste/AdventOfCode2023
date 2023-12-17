@@ -43,7 +43,9 @@ object Day16 : Challenge() {
 }
 
 enum class Direction(val position: Point) {
-    N(NORTH), E(EAST), S(SOUTH), W(WEST)
+    N(NORTH), E(EAST), S(SOUTH), W(WEST);
+
+    fun opposite() = Direction.entries[(Direction.entries.indexOf(this) + 2) % 4]
 }
 
 enum class Mirror(val character: Char, val fromTo: Map<Direction, Array<Direction>>) {
