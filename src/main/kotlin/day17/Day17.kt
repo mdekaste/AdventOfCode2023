@@ -13,7 +13,9 @@ fun main() {
 typealias Vector = Pair<Point, Direction>
 
 object Day17 : Challenge() {
-    private val parsed = input.lines().flatMapIndexed { y, s -> s.mapIndexed { x, c -> y to x to c.digitToInt() } }.toMap()
+    private val parsed = input.lines()
+        .flatMapIndexed { y, s -> s.mapIndexed { x, c -> y to x to c.digitToInt() } }
+        .toMap()
     private val startPoint = 0 to 0
     private val endPoint = (parsed.maxOf { it.key.first }) to (parsed.maxOf { it.key.second })
 
