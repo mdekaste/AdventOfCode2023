@@ -2,6 +2,10 @@ package day10
 
 // ktlint-disable no-wildcard-imports
 import Challenge
+import EAST
+import NORTH
+import SOUTH
+import WEST
 import kotlin.math.absoluteValue
 
 fun main() {

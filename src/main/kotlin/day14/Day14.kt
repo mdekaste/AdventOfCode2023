@@ -2,7 +2,8 @@ package day14
 
 import Challenge
 import Point
-import java.util.EnumMap
+import plus
+import java.util.*
 
 fun main() {
     // Day14.part1().let(::println)
@@ -67,7 +68,7 @@ object Day14 : Challenge() {
 
     class Node(val pos: Point, var currentItem: Char, graph: Map<Point, Node>) {
         private val neighbours by lazy {
-            Direction.entries.associateByTo(EnumMap(Direction::class.java), { it }, { graph[pos + it.direction] })
+            Direction.entries.associateByTo(EnumMap(Direction::class.java), { it }, { graph[pos.plus(it.direction)] })
         }
 
         fun moveBoulder(dir: Direction): Node {

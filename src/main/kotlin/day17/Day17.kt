@@ -1,7 +1,11 @@
 package day17
 
 import Challenge
+import EAST
 import Point
+import SOUTH
+import perpendicular
+import plus
 import java.util.*
 
 fun main() {
@@ -19,7 +23,7 @@ object Day17 : Challenge() {
 
     data class State(
         val point: Point = startPoint,
-        val direction: Direction,
+        val direction: Point,
         val moveMemory: Int = 1,
         val score: Int = 0
     )
@@ -29,12 +33,12 @@ object Day17 : Challenge() {
 
     fun solve(minimalForward: Int, maximumForward: Int): Int {
         val visited = mutableSetOf(
-            Triple(startPoint, Direction.E, 1),
-            Triple(startPoint, Direction.S, 1)
+            Triple(startPoint, EAST, 1),
+            Triple(startPoint, SOUTH, 1)
         )
         val queue = PriorityQueue(compareBy(State::score, State::moveMemory)).apply {
-            add(State(startPoint, Direction.E, 1, 0))
-            add(State(startPoint, Direction.S, 1, 0))
+            add(State(startPoint, EAST, 1, 0))
+            add(State(startPoint, SOUTH, 1, 0))
         }
         fun add(state: State) {
             if (visited.add(Triple(state.point, state.direction, state.moveMemory))) {
@@ -43,7 +47,7 @@ object Day17 : Challenge() {
         }
         while (queue.isNotEmpty()) {
             val (point, direction, forwardCount, score) = queue.poll()
-            val nextPoint = point + direction.position
+            val nextPoint = point + direction
             val nextScore = score + (parsed[nextPoint] ?: continue)
             if (nextPoint == endPoint) {
                 return nextScore
@@ -52,7 +56,7 @@ object Day17 : Challenge() {
                 add(State(nextPoint, direction, forwardCount + 1, nextScore))
             }
             if (forwardCount >= minimalForward) {
-                direction.perpendicular.forEach {
+                direction.perpendicular().forEach {
                     add(State(nextPoint, it, 1, nextScore))
                 }
             }

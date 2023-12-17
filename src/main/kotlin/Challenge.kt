@@ -22,24 +22,6 @@ abstract class Challenge(
         return "$part1 $part2 ${part1.duration + part2.duration}"
     }
 
-    companion object {
-        val NORTH = -1 to 0
-        val EAST = 0 to 1
-        val SOUTH = 1 to 0
-        val WEST = 0 to -1
-        val NORTH_EAST = -1 to 1
-        val SOUTH_EAST = 1 to 1
-        val SOUTH_WEST = 1 to -1
-        val NORTH_WEST = -1 to -1
-        val ORIGIN = 0 to 0
-        operator fun Point.plus(other: Point) = first + other.first to second + other.second
-        operator fun Point.minus(other: Point) = first - other.first to second - other.second
-        fun Point.neighbours4() = listOf(NORTH, EAST, SOUTH, WEST).map { it + this }
-        fun Point.neighbours8() =
-            listOf(NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST, NORTH_WEST).map { it + this }
-
-    }
-
     enum class Direction(val position: Point) {
         N(NORTH), E(EAST), S(SOUTH), W(WEST);
         operator fun not() = Direction.entries - this
@@ -49,3 +31,31 @@ abstract class Challenge(
 
 
 }
+
+val NORTH = -1 to 0
+val EAST = 0 to 1
+val SOUTH = 1 to 0
+val WEST = 0 to -1
+val NORTH_EAST = -1 to 1
+val SOUTH_EAST = 1 to 1
+val SOUTH_WEST = 1 to -1
+val NORTH_WEST = -1 to -1
+val ORIGIN = 0 to 0
+operator fun Point.plus(other: Point) = first + other.first to second + other.second
+operator fun Point.minus(other: Point) = first - other.first to second - other.second
+
+val CARDINALS = listOf(NORTH, EAST, SOUTH, WEST)
+val INTERCARDINALS = listOf(NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST)
+val WINDS = listOf(NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST, NORTH_WEST)
+fun Point.cardinals() = CARDINALS.map { it + this }
+fun Point.intercardinals() = INTERCARDINALS.map { it + this }
+fun Point.winds() = WINDS.map { it + this }
+
+operator fun Point.unaryMinus() = -first to -second
+operator fun Point.dec() = rotLeft()
+operator fun Point.inc() = rotRight()
+fun Point.rotRight() = -second to first
+fun Point.rotLeft() = second to -first
+
+fun Point.perpendicular() = sequenceOf(rotLeft(), rotRight())
+operator fun Point.not() = sequenceOf(rotLeft(), -this, rotRight())
