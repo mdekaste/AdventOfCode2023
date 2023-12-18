@@ -13,7 +13,7 @@ abstract class Challenge(
     abstract fun part2(): Any?
 
     fun solve(): Any? {
-        repeat(100) {
+        repeat(10000) {
             part1()
             part2()
         }
@@ -43,6 +43,8 @@ val NORTH_WEST = -1 to -1
 val ORIGIN = 0 to 0
 operator fun Point.plus(other: Point) = first + other.first to second + other.second
 operator fun Point.minus(other: Point) = first - other.first to second - other.second
+
+operator fun Point.times(amount: Int) = first * amount to second * amount
 
 val CARDINALS = listOf(NORTH, EAST, SOUTH, WEST)
 val INTERCARDINALS = listOf(NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST)
