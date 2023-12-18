@@ -53,7 +53,7 @@ object Day14 : Challenge() {
             }
         }
 
-        fun stateAtIndex(index: Int): List<Point> = boulders.values.map { it.get(index) }
+        fun stateAtIndex(index: Int): List<Point> = boulders.values.onEach { println(it) }.map { it.get(index) }
 
         data class Cycle(
             val set: MutableSet<Point>,
@@ -61,7 +61,7 @@ object Day14 : Challenge() {
         ) {
             fun add(boulder: Point): Boolean {
                 if (!set.add(boulder)) {
-                    if (cycleIndex != 0) {
+                    if (cycleIndex == 0) {
                         cycleIndex = set.indexOf(boulder)
                     }
                     return true
@@ -72,6 +72,8 @@ object Day14 : Challenge() {
                 true -> set.toList()[index]
                 else -> set.toList().subList(cycleIndex, set.size).let { it[(index - cycleIndex) % it.size] }
             }
+
+            override fun toString() = set.withIndex().joinToString(", ") { (index, value) -> "${if (index == cycleIndex) "cycle:" else ""}(${value.first},${value.second})" }
         }
     }
 
