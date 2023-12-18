@@ -13,7 +13,7 @@ abstract class Challenge(
     abstract fun part2(): Any?
 
     fun solve(): Any? {
-        repeat(10000) {
+        repeat(100) {
             part1()
             part2()
         }
@@ -52,6 +52,7 @@ val WINDS = listOf(NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST,
 fun Point.cardinals() = CARDINALS.map { it + this }
 fun Point.intercardinals() = INTERCARDINALS.map { it + this }
 fun Point.winds() = WINDS.map { it + this }
+fun Point.sum() = first + second
 
 operator fun Point.unaryMinus() = -first to -second
 operator fun Point.dec() = rotLeft()
