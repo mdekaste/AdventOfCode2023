@@ -10,19 +10,21 @@ fun main() {
 }
 
 object Day19 : Challenge() {
-    lateinit var path: Map<String, Map<Rule, Transition>>
-    lateinit var machines: List<Map<String, Int>>
+    val workflows: Map<String, Map<Rule, Transition>>
+    val parts: List<Map<String, Int>>
 
-    val parsed = input.splitOnEmpty().let { (top, bottom) ->
-        path = top.lines().map {
-            val a = it.substringBefore('{')
-            val line = it.substringAfter('{').substringBefore('}')
-            a to line.split(',').associate { rule(it) }
-        }.toMap()
-        machines = bottom.lines().map { it.substringAfter('{').substringBefore('}') }.map {
-            it.split(',').map {
-                it.split('=').let { (a, b) -> a to b.toInt() }
+    init {
+        input.splitOnEmpty().let { (top, bottom) ->
+            workflows = top.lines().map {
+                val a = it.substringBefore('{')
+                val line = it.substringAfter('{').substringBefore('}')
+                a to line.split(',').associate { rule(it) }
             }.toMap()
+            parts = bottom.lines().map { it.substringAfter('{').substringBefore('}') }.map {
+                it.split(',').map {
+                    it.split('=').let { (a, b) -> a to b.toInt() }
+                }.toMap()
+            }
         }
     }
 
@@ -73,13 +75,17 @@ object Day19 : Challenge() {
             }
         }
 
-    override fun part1(): Any? {
-        return machines.filter(::accepted)
-            .sumOf { it.getValue("x") + it.getValue("m") + it.getValue("a") + it.getValue("s") }
-    }
+    override fun part1() = parts.filter(::accepted)
+        .sumOf { it.getValue("x") + it.getValue("m") + it.getValue("a") + it.getValue("s") }
+
+    private fun accepted(part: Map<String, Int>, rule: Map<Rule, Transition> = workflows.getValue("in")): Boolean =
+        when (val transition = rule.entries.first { (rule, _) -> rule.check(part) }.value) {
+            is Transition.Accepted -> transition.boolean
+            is Transition.Next -> accepted(part, workflows.getValue(transition.input))
+        }
 
     override fun part2(): Any? {
-        val test = accepted2().map {
+        val test = pathsToAcceptance().map {
             it.groupingBy { it.variable }
                 .fold(listOf(1L..4000L)) { ranges, range ->
                     ranges.mapNotNull {
@@ -97,10 +103,16 @@ object Day19 : Challenge() {
         return test
     }
 
-    fun accepted2(
+    private fun pathsToAcceptance(
         thusFar: List<Rule.Check> = emptyList(),
-        rules: Map<Rule, Transition> = path.getValue("in")
+        rules: Map<Rule, Transition> = workflows.getValue("in")
     ): List<List<Rule.Check>> {
+//        rules.entries.fold(emptyList<Rule.Check>()){ list, (rule, transition) ->
+//            when(transition){
+//                Transition.Accepted(true) -> listthusFar + list
+//                is Transition.Next -> pathsToAcceptance(thusFar + list, workflows.getValue(transition.input))
+//            }
+//        }
         return buildList<List<Rule.Check>> {
             var list = emptyList<Rule.Check>()
             rules.forEach { (rule, transition) ->
@@ -110,7 +122,7 @@ object Day19 : Challenge() {
                             add(thusFar + list)
                         }
 
-                        is Transition.Next -> addAll(accepted2(thusFar + list, path.getValue(transition.input)))
+                        is Transition.Next -> addAll(pathsToAcceptance(thusFar + list, workflows.getValue(transition.input)))
                     }
 
                     is Rule.Check -> {
@@ -120,9 +132,9 @@ object Day19 : Challenge() {
                             }
 
                             is Transition.Next -> addAll(
-                                accepted2(
+                                pathsToAcceptance(
                                     thusFar + list + rule,
-                                    path.getValue(transition.input)
+                                    workflows.getValue(transition.input)
                                 )
                             )
                         }
@@ -132,10 +144,4 @@ object Day19 : Challenge() {
             }
         }
     }
-
-    fun accepted(machine: Map<String, Int>, rule: Map<Rule, Transition> = path.getValue("in")): Boolean =
-        when (val transition = rule.entries.first { it.key.check(machine) }.value) {
-            is Transition.Accepted -> transition.boolean
-            is Transition.Next -> accepted(machine, path.getValue(transition.input))
-        }
 }
