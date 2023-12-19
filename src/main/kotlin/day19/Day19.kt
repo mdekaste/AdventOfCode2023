@@ -66,7 +66,7 @@ object Day19 : Challenge() {
         }
     }
 
-    fun rule(input: String): Pair<Rule, Transition> =
+    private fun rule(input: String): Pair<Rule, Transition> =
         input.split(":").let {
             when (it.size) {
                 1 -> Rule.Just to Transition(it[0])
@@ -84,61 +84,37 @@ object Day19 : Challenge() {
             is Transition.Next -> accepted(part, workflows.getValue(transition.input))
         }
 
-    fun LongRange.intersect(other: LongRange) = max(first, other.first)..min(last, other.last)
+    private fun LongRange.intersect(other: LongRange) = max(first, other.first)..min(last, other.last)
+    private fun LongRange.length() = last - first + 1
 
-    override fun part2(): Any? {
-        val test = pathsToAcceptance().map {
-            it.groupBy ({ it.variable }, {it.range})
+    override fun part2(): Any {
+        val test = pathsToAcceptance().map { checkRules ->
+            checkRules.groupBy({ it.variable }, { it.range })
                 .mapValues { (_, value) -> value.reduce { acc, longRange -> acc.intersect(longRange) } }
                 .withDefault { 1L..4000L }
         }.sumOf {
-            val xCount = it.getValue("x").let { it.endInclusive - it.start + 1L }
-            val mCount = it.getValue("m").let { it.endInclusive - it.start + 1L }
-            val aCount = it.getValue("a").let { it.endInclusive - it.start + 1L }
-            val sCount = it.getValue("s").let { it.endInclusive - it.start + 1L }
+            val xCount = it.getValue("x").length()
+            val mCount = it.getValue("m").length()
+            val aCount = it.getValue("a").length()
+            val sCount = it.getValue("s").length()
             xCount * mCount * aCount * sCount
         }
         return test
     }
 
     private fun pathsToAcceptance(
-        thusFar: List<Rule.Check> = emptyList(),
+        thusFar: List<Rule> = emptyList(),
         rules: Map<Rule, Transition> = workflows.getValue("in")
-    ): List<List<Rule.Check>> {
-//        rules.entries.fold(emptyList<Rule.Check>()){ list, (rule, transition) ->
-//            when(transition){
-//                Transition.Accepted(true) -> listthusFar + list
-//                is Transition.Next -> pathsToAcceptance(thusFar + list, workflows.getValue(transition.input))
-//            }
-//        }
-        return buildList<List<Rule.Check>> {
-            var list = emptyList<Rule.Check>()
-            rules.forEach { (rule, transition) ->
-                when (rule) {
-                    is Rule.Just -> when (transition) {
-                        is Transition.Accepted -> if (transition.boolean) {
-                            add(thusFar + list)
-                        }
-
-                        is Transition.Next -> addAll(pathsToAcceptance(thusFar + list, workflows.getValue(transition.input)))
-                    }
-
-                    is Rule.Check -> {
-                        when (transition) {
-                            is Transition.Accepted -> if (transition.boolean) {
-                                add(thusFar + list + rule)
-                            }
-
-                            is Transition.Next -> addAll(
-                                pathsToAcceptance(
-                                    thusFar + list + rule,
-                                    workflows.getValue(transition.input)
-                                )
-                            )
-                        }
-                        list = list + rule.invert()
-                    }
-                }
+    ): List<List<Rule.Check>> = buildList {
+        var list = emptyList<Rule.Check>()
+        rules.entries.forEach { (rule, transition) ->
+            when (transition) {
+                Transition.Accepted(true) -> add((thusFar + list + rule).filterIsInstance<Rule.Check>())
+                is Transition.Next -> addAll(pathsToAcceptance(thusFar + list + rule, workflows.getValue(transition.input)))
+                else -> Unit
+            }
+            if (rule is Rule.Check) {
+                list = list + rule.invert()
             }
         }
     }
