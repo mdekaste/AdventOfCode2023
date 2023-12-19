@@ -6,6 +6,7 @@ import Point
 import SOUTH
 import perpendicular
 import plus
+import times
 import java.util.*
 
 fun main() {
@@ -42,7 +43,7 @@ object Day17 : Challenge() {
         }
 
         fun add(state: State) {
-            if (visited.add(state)) {
+            if (parsed.containsKey(state.point + state.direction) && visited.add(state)) {
                 queue.offer(state)
             }
         }
@@ -58,7 +59,9 @@ object Day17 : Challenge() {
             }
             if (state.forwardCount >= minimalForward) {
                 state.direction.perpendicular().forEach {
-                    add(State(nextPoint, it, 1, nextScore))
+                    if(parsed.containsKey(state.point + it * minimalForward)) {
+                        add(State(nextPoint, it, 1, nextScore))
+                    }
                 }
             }
         }
