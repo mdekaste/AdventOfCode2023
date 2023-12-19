@@ -10,46 +10,28 @@ fun main() {
 }
 
 object Day19 : Challenge() {
-    data class Input(
-        val workflows: Map<String, Map<Rule, Transition>>,
-        val parts: List<Map<String, Int>>
-    )
-
     val workflows: Map<String, Map<Rule, Transition>>
     val parts: List<Map<String, Int>>
 
     init {
         input.splitOnEmpty().let { (top, bottom) ->
-//            Input(
-//                workflows = top.lines().map(::workflow),
-//                parts = bottom.lines().map(::part)
-//            )
-            workflows = top.lines().map {
-                val a = it.substringBefore('{')
-                val line = it.substringAfter('{').substringBefore('}')
-                a to line.split(',').associate { rule(it) }
-            }.toMap()
-            parts = bottom.lines().map { it.substringAfter('{').substringBefore('}') }.map {
-                it.split(',').map {
+            workflows = top.lines().associate {
+                val (key, values) = it.split('{', '}')
+                key to values.split(',').associate(::rule)
+            }
+            parts = bottom.lines().map { it.split('{', '}')[1] }.map { line ->
+                line.split(',').associate {
                     it.split('=').let { (a, b) -> a to b.toInt() }
-                }.toMap()
+                }
             }
         }
     }
-
-    fun workflow(line: String): Pair<String, Map<Rule, Transition>> {
-        val (key, values) = line.split('{', '}')
-        return key to values.split(',').associate(::rule)
-    }
-
 
     private fun rule(input: String): Pair<Rule, Transition> =
         input.split(":").let {
             when (it.size) {
                 1 -> Rule.Just to Transition(it[0])
-                else -> it[0].split('<', '>').let { (variable, value) ->
-                    Rule.Check(variable, value.toInt(), Compare(it[0][1])) to Transition(it[1])
-                }
+                else -> it[0].split('<', '>').let { (variable, value) -> Rule.Check(variable, value.toInt(), Compare(it[0][1])) to Transition(it[1]) }
             }
         }
 
@@ -100,19 +82,16 @@ object Day19 : Challenge() {
     private fun LongRange.intersect(other: LongRange) = max(first, other.first)..min(last, other.last)
     private fun LongRange.length() = last - first + 1
 
-    override fun part2(): Any {
-        val test = pathsToAcceptance().map { checkRules ->
-            checkRules.groupBy({ it.variable }, { it.range })
-                .mapValues { (_, value) -> value.reduce { acc, longRange -> acc.intersect(longRange) } }
-                .withDefault { 1L..4000L }
-        }.sumOf {
-            val xCount = it.getValue("x").length()
-            val mCount = it.getValue("m").length()
-            val aCount = it.getValue("a").length()
-            val sCount = it.getValue("s").length()
-            xCount * mCount * aCount * sCount
-        }
-        return test
+    override fun part2() = pathsToAcceptance().map { checkRules ->
+        checkRules.groupBy({ it.variable }, { it.range })
+            .mapValues { (_, value) -> value.reduce { acc, longRange -> acc.intersect(longRange) } }
+            .withDefault { 1L..4000L }
+    }.sumOf {
+        val xCount = it.getValue("x").length()
+        val mCount = it.getValue("m").length()
+        val aCount = it.getValue("a").length()
+        val sCount = it.getValue("s").length()
+        xCount * mCount * aCount * sCount
     }
 
     private fun pathsToAcceptance(
