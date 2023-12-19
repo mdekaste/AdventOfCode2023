@@ -1,7 +1,6 @@
 package day19
 
 import Challenge
-import helpers.intersect
 import helpers.splitOnEmpty
 import kotlin.math.*
 
@@ -11,11 +10,20 @@ fun main() {
 }
 
 object Day19 : Challenge() {
+    data class Input(
+        val workflows: Map<String, Map<Rule, Transition>>,
+        val parts: List<Map<String, Int>>
+    )
+
     val workflows: Map<String, Map<Rule, Transition>>
     val parts: List<Map<String, Int>>
 
     init {
         input.splitOnEmpty().let { (top, bottom) ->
+//            Input(
+//                workflows = top.lines().map(::workflow),
+//                parts = bottom.lines().map(::part)
+//            )
             workflows = top.lines().map {
                 val a = it.substringBefore('{')
                 val line = it.substringAfter('{').substringBefore('}')
@@ -29,13 +37,29 @@ object Day19 : Challenge() {
         }
     }
 
+    fun workflow(line: String): Pair<String, Map<Rule, Transition>> {
+        val (key, values) = line.split('{', '}')
+        return key to values.split(',').associate(::rule)
+    }
+
+
+    private fun rule(input: String): Pair<Rule, Transition> =
+        input.split(":").let {
+            when (it.size) {
+                1 -> Rule.Just to Transition(it[0])
+                else -> it[0].split('<', '>').let { (variable, value) ->
+                    Rule.Check(variable, value.toInt(), Compare(it[0][1])) to Transition(it[1])
+                }
+            }
+        }
+
     sealed interface Transition {
         data class Next(val input: String) : Transition
-        data class Accepted(val boolean: Boolean) : Transition
+        data class End(val boolean: Boolean) : Transition
         companion object {
             operator fun invoke(input: String) = when (input) {
-                "A" -> Accepted(true)
-                "R" -> Accepted(false)
+                "A" -> End(true)
+                "R" -> End(false)
                 else -> Next(input)
             }
         }
@@ -52,7 +76,6 @@ object Day19 : Challenge() {
         }
     }
 
-
     enum class Compare(val char: String, val toRange: (Int) -> LongRange) {
         LESS("<", { 1L..<it }),
         MORE(">", { (it + 1)..4000L }),
@@ -66,21 +89,11 @@ object Day19 : Challenge() {
         }
     }
 
-    private fun rule(input: String): Pair<Rule, Transition> =
-        input.split(":").let {
-            when (it.size) {
-                1 -> Rule.Just to Transition(it[0])
-                else -> it[0].split('<', '>').let { (variable, value) ->
-                    Rule.Check(variable, value.toInt(), Compare(it[0][1])) to Transition(it[1])
-                }
-            }
-        }
-
     override fun part1() = parts.filter(::accepted).sumOf { it.getValue("x") + it.getValue("m") + it.getValue("a") + it.getValue("s") }
 
     private fun accepted(part: Map<String, Int>, rule: Map<Rule, Transition> = workflows.getValue("in")): Boolean =
         when (val transition = rule.entries.first { (rule, _) -> rule.check(part) }.value) {
-            is Transition.Accepted -> transition.boolean
+            is Transition.End -> transition.boolean
             is Transition.Next -> accepted(part, workflows.getValue(transition.input))
         }
 
@@ -106,15 +119,15 @@ object Day19 : Challenge() {
         thusFar: List<Rule> = emptyList(),
         rules: Map<Rule, Transition> = workflows.getValue("in")
     ): List<List<Rule.Check>> = buildList {
-        var list = emptyList<Rule.Check>()
+        val previous = mutableListOf<Rule.Check>()
         rules.entries.forEach { (rule, transition) ->
             when (transition) {
-                Transition.Accepted(true) -> add((thusFar + list + rule).filterIsInstance<Rule.Check>())
-                is Transition.Next -> addAll(pathsToAcceptance(thusFar + list + rule, workflows.getValue(transition.input)))
+                Transition.End(true) -> add((thusFar + previous + rule).filterIsInstance<Rule.Check>())
+                is Transition.Next -> addAll(pathsToAcceptance(thusFar + previous + rule, workflows.getValue(transition.input)))
                 else -> Unit
             }
             if (rule is Rule.Check) {
-                list = list + rule.invert()
+                previous += rule.invert()
             }
         }
     }
