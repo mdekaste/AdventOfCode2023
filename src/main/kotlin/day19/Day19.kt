@@ -10,116 +10,77 @@ fun main() {
 }
 
 object Day19 : Challenge() {
-    lateinit var path: Map<String, List<Rule>>
-    lateinit var machines: List<Machine>
+    lateinit var path: Map<String, Map<Rule, Transition>>
+    lateinit var machines: List<Map<String, Int>>
 
     val parsed = input.splitOnEmpty().let { (top, bottom) ->
         path = top.lines().map {
-            it
             val a = it.substringBefore('{')
             val line = it.substringAfter('{').substringBefore('}')
-            a to line.split(',').map { rule(it) }
+            a to line.split(',').associate { rule(it) }
         }.toMap()
         machines = bottom.lines().map { it.substringAfter('{').substringBefore('}') }.map {
             it.split(',').map {
                 it.split('=').let { (a, b) -> a to b.toInt() }
-            }.toMap().let(::Machine)
+            }.toMap()
         }
-    }
-
-    class Machine(val map: Map<String, Int>) {
-        val x by map
-        val m by map
-        val a by map
-        val s by map
     }
 
     sealed interface Transition {
         data class Next(val input: String) : Transition
         data class Accepted(val boolean: Boolean) : Transition
+        companion object {
+            operator fun invoke(input: String) = when (input) {
+                "A" -> Accepted(true)
+                "R" -> Accepted(false)
+                else -> Next(input)
+            }
+        }
     }
-
-
 
     sealed interface Rule {
-        val transition: Transition
-        fun check(machine: Machine): Transition?
+        fun check(machine: Map<String, Int>) = true
 
-        data class Just(
-            override val transition: Transition
-        ) : Rule {
-            override fun check(machine: Machine) = transition
-        }
-
-        data class Check(
-            val variable: String,
-            val compareValue: Int,
-            val compare: Compare,
-            override val transition: Transition,
-        ) : Rule {
-            val range = when (compare) {
-                Compare.LESS -> 1L..<compareValue
-                Compare.LESS_EQUALS -> 1L..compareValue
-                Compare.MORE -> (compareValue + 1)..4000L
-                Compare.MORE_EQUALS -> compareValue..4000L
-            }
-
-            override fun check(machine: Machine): Transition? =
-                transition.takeIf { machine.map.getValue(variable) in range }
-
-            fun invert(): Check = Check(variable, compareValue, compare.invert(), transition)
+        data object Just : Rule
+        data class Check(val variable: String, val value: Int, val compare: Compare) : Rule {
+            val range = compare.toRange(value)
+            override fun check(machine: Map<String, Int>) = machine.getValue(variable) in range
+            fun invert() = Check(variable, value, compare.invert())
         }
     }
 
 
-
-    enum class Compare(val char: String) {
-        LESS("<"), MORE(">"), MORE_EQUALS(">="), LESS_EQUALS("<=");
+    enum class Compare(val char: String, val toRange: (Int) -> LongRange) {
+        LESS("<", { 1L..<it }),
+        MORE(">", { (it + 1)..4000L }),
+        MORE_EQUALS(">=", { it..4000L }),
+        LESS_EQUALS("<=", { 1L..it });
 
         fun invert(): Compare = entries[(ordinal + 2) % 4]
-    }
 
-    fun rule(input: String): Rule {
-        if (!input.contains(":")) {
-            return Rule.Just(
-                when (input) {
-                    "A" -> Transition.Accepted(true)
-                    "R" -> Transition.Accepted(false)
-                    else -> Transition.Next(input)
-                }
-            )
-        } else {
-            input.split(":").let { (check, input) ->
-                val transition = when (input) {
-                    "A" -> Transition.Accepted(true)
-                    "R" -> Transition.Accepted(false)
-                    else -> Transition.Next(input)
-                }
-                when (check.contains("<")) {
-                    true -> {
-                        val variable = check.substringBefore("<")
-                        val value = check.substringAfter("<").toInt()
-                        return Rule.Check(variable, value, Compare.LESS, transition)
-                    }
-
-                    else -> {
-                        val variable = check.substringBefore(">")
-                        val value = check.substringAfter(">").toInt()
-                        return Rule.Check(variable, value, Compare.MORE, transition)
-                    }
-                }
-            }
+        companion object {
+            operator fun invoke(char: Char) = entries.first { it.char == char.toString() }
         }
     }
 
+    fun rule(input: String): Pair<Rule, Transition> =
+        input.split(":").let {
+            when (it.size) {
+                1 -> Rule.Just to Transition(it[0])
+                else -> it[0].split('<', '>').let { (variable, value) ->
+                    Rule.Check(variable, value.toInt(), Compare(it[0][1])) to Transition(it[1])
+                }
+            }
+        }
+
     override fun part1(): Any? {
-        return machines.filter(::accepted).sumOf { it.a + it.x + it.m + it.s }
+        return machines.filter(::accepted)
+            .sumOf { it.getValue("x") + it.getValue("m") + it.getValue("a") + it.getValue("s") }
     }
 
     override fun part2(): Any? {
         val test = accepted2().map {
-            it.filterIsInstance<Rule.Check>()
-                .groupingBy { it.variable }
+            it.groupingBy { it.variable }
                 .fold(listOf(1L..4000L)) { ranges, range ->
                     ranges.mapNotNull {
                         it.intersect(range.range).takeUnless { it.isEmpty() }
@@ -133,39 +94,47 @@ object Day19 : Challenge() {
             val sCount = it.getValue("s").let { it.endInclusive - it.start + 1L }
             xCount * mCount * aCount * sCount
         }
-        return println(test)
+        return test
     }
 
-    fun accepted2(thusFar: List<Rule> = emptyList(), rules: List<Rule> = path.getValue("in")): List<List<Rule>> {
-        return buildList<List<Rule>> {
-            var list = emptyList<Rule>()
-            rules.forEach {
-                when (it) {
-                    is Rule.Just -> when (val transition = it.transition) {
+    fun accepted2(
+        thusFar: List<Rule.Check> = emptyList(),
+        rules: Map<Rule, Transition> = path.getValue("in")
+    ): List<List<Rule.Check>> {
+        return buildList<List<Rule.Check>> {
+            var list = emptyList<Rule.Check>()
+            rules.forEach { (rule, transition) ->
+                when (rule) {
+                    is Rule.Just -> when (transition) {
                         is Transition.Accepted -> if (transition.boolean) {
-                            add(thusFar + list + it)
+                            add(thusFar + list)
                         }
 
-                        is Transition.Next -> addAll(accepted2(thusFar + list + it, path.getValue(transition.input)))
+                        is Transition.Next -> addAll(accepted2(thusFar + list, path.getValue(transition.input)))
                     }
 
                     is Rule.Check -> {
-                        when (val transition = it.transition) {
+                        when (transition) {
                             is Transition.Accepted -> if (transition.boolean) {
-                                add(thusFar + list + it)
+                                add(thusFar + list + rule)
                             }
 
-                            is Transition.Next -> addAll(accepted2(thusFar + list + it, path.getValue(transition.input)))
+                            is Transition.Next -> addAll(
+                                accepted2(
+                                    thusFar + list + rule,
+                                    path.getValue(transition.input)
+                                )
+                            )
                         }
-                        list = list + it.invert()
+                        list = list + rule.invert()
                     }
                 }
             }
         }
     }
 
-    fun accepted(machine: Machine, rule: List<Rule> = path.getValue("in")): Boolean =
-        when (val transition = rule.firstNotNullOf { it.check(machine) }) {
+    fun accepted(machine: Map<String, Int>, rule: Map<Rule, Transition> = path.getValue("in")): Boolean =
+        when (val transition = rule.entries.first { it.key.check(machine) }.value) {
             is Transition.Accepted -> transition.boolean
             is Transition.Next -> accepted(machine, path.getValue(transition.input))
         }
