@@ -3,6 +3,7 @@ package day19
 import Challenge
 import helpers.intersect
 import helpers.splitOnEmpty
+import kotlin.math.*
 
 fun main() {
     Day19.part1().let(::println)
@@ -75,8 +76,7 @@ object Day19 : Challenge() {
             }
         }
 
-    override fun part1() = parts.filter(::accepted)
-        .sumOf { it.getValue("x") + it.getValue("m") + it.getValue("a") + it.getValue("s") }
+    override fun part1() = parts.filter(::accepted).sumOf { it.getValue("x") + it.getValue("m") + it.getValue("a") + it.getValue("s") }
 
     private fun accepted(part: Map<String, Int>, rule: Map<Rule, Transition> = workflows.getValue("in")): Boolean =
         when (val transition = rule.entries.first { (rule, _) -> rule.check(part) }.value) {
@@ -84,14 +84,12 @@ object Day19 : Challenge() {
             is Transition.Next -> accepted(part, workflows.getValue(transition.input))
         }
 
+    fun LongRange.intersect(other: LongRange) = max(first, other.first)..min(last, other.last)
+
     override fun part2(): Any? {
         val test = pathsToAcceptance().map {
-            it.groupingBy { it.variable }
-                .fold(listOf(1L..4000L)) { ranges, range ->
-                    ranges.mapNotNull {
-                        it.intersect(range.range).takeUnless { it.isEmpty() }
-                    }
-                }.mapValues { it.value.single() }
+            it.groupBy ({ it.variable }, {it.range})
+                .mapValues { (_, value) -> value.reduce { acc, longRange -> acc.intersect(longRange) } }
                 .withDefault { 1L..4000L }
         }.sumOf {
             val xCount = it.getValue("x").let { it.endInclusive - it.start + 1L }
