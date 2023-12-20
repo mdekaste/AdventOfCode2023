@@ -121,7 +121,7 @@ object Day20 : Challenge() {
                 val z = flipped[44]
                 val a = flipped[46]
                 println("help")
-                return flipped.map { it.zipWithNext { a, b -> b - a.toLong() }.first() }.reduce { acc, longs -> acc.lcm(longs) }
+                return flipped.map { it[1].toLong() }.filter { it.countOneBits() != 1 }.reduce { acc, longs -> acc.lcm(longs) }
             }
             // println(flipped[29] + " " + flipped[43] + " " + flipped[44] + " " + flipped[46])
             totalIndex++
