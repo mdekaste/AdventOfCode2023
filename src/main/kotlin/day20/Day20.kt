@@ -1,6 +1,7 @@
 package day20
 
 import Challenge
+import helpers.lcm
 
 fun main() {
     Day20.part1().let(::println)
@@ -103,24 +104,26 @@ object Day20 : Challenge() {
         val names = parsed.values.filterIsInstance<FlipFlop>().map { it.key }
         //29 43 44 46
         //rb xk vj nc
-        var previous = List(initial.size){ true }
-        val hasFlipped = MutableList(initial.size){ false }
-        val flippedOn = MutableList<Int?>(initial.size){ null as Int? }
-        val flippedOff = MutableList<Int?>(initial.size) { null }
+        val previous = MutableList(initial.size){ false }
+        val flipped = MutableList(initial.size){ mutableListOf<Int>() }
         var totalIndex = 0
         while(true){
             simulate2()
-            parsed.values.filterIsInstance<FlipFlop>().map { it.onOrOff }.forEachIndexed { index, b ->
-                if(b && flippedOn[index] == null){
-                    flippedOn[index] = totalIndex + 1
-                } else if(!b && flippedOn[index] != null && flippedOff[index] == null) {
-                    flippedOff[index] = totalIndex + 1
+            parsed.values.filterIsInstance<FlipFlop>().forEachIndexed { index, t ->
+                if(t.onOrOff != previous[index]){
+                    previous[index] = t.onOrOff
+                    flipped[index] += totalIndex + 1
                 }
             }
-            if(flippedOff.none { it == null }){
-                val x = flippedOn.zip(flippedOff).filter { it.second!!.countOneBits() != 1 }
-                return x
+            if(flipped[29].size == 4 && flipped[43].size == 4 && flipped[44].size == 4 && flipped[46].size == 4){
+                val x = flipped[29]
+                val y = flipped[43]
+                val z = flipped[44]
+                val a = flipped[46]
+                println("help")
+                return flipped.map { it.zipWithNext { a, b -> b - a.toLong() }.first() }.reduce { acc, longs -> acc.lcm(longs) }
             }
+            // println(flipped[29] + " " + flipped[43] + " " + flipped[44] + " " + flipped[46])
             totalIndex++
         }
         error("")
