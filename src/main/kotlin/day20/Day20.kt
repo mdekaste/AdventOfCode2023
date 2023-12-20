@@ -42,7 +42,7 @@ object Day20 : Challenge() {
         override val key: String,
         override val output: List<String>
     ) : Module {
-        override val lastSendSignal: Boolean = false
+        override val lastSendSignal: Boolean get() = false
         override fun receive(from: String, signal: Boolean) = output to signal
     }
 
@@ -50,16 +50,12 @@ object Day20 : Challenge() {
         override val key: String,
         override val output: List<String>
     ) : Module {
-        var onOrOff: Boolean = false
-        override val lastSendSignal: Boolean = onOrOff
+        override var lastSendSignal: Boolean = false
         override fun receive(from: String, signal: Boolean): Pair<List<String>, Boolean> {
             return when(signal){
-                true -> emptyList<String>() to false
-                false -> {
-                    onOrOff = !onOrOff
-                    output to onOrOff
-                }
-            }
+                true -> emptyList<String>()
+                false -> output.also { lastSendSignal = !lastSendSignal }
+            } to lastSendSignal
         }
     }
 
@@ -68,10 +64,11 @@ object Day20 : Challenge() {
         override val output: List<String>
     ) : Module {
         val input: MutableMap<String, Boolean> = mutableMapOf()
-        override val lastSendSignal: Boolean = !input.values.all { it }
+        override var lastSendSignal: Boolean = false
         override fun receive(from: String, signal: Boolean): Pair<List<String>, Boolean> {
             input[from] = signal
-            return output to !input.values.all { it }
+            lastSendSignal = !input.values.all{ it }
+            return output to lastSendSignal
         }
     }
 
@@ -100,7 +97,7 @@ object Day20 : Challenge() {
     }
 
     override fun part2(): Any? {
-        val initial = parsed.values.filterIsInstance<FlipFlop>().map { it.onOrOff }
+        val initial = parsed.values.filterIsInstance<FlipFlop>().map { it.lastSendSignal }
         val names = parsed.values.filterIsInstance<FlipFlop>().map { it.key }
         //29 43 44 46
         //rb xk vj nc
@@ -110,8 +107,8 @@ object Day20 : Challenge() {
         while(true){
             simulate2()
             parsed.values.filterIsInstance<FlipFlop>().forEachIndexed { index, t ->
-                if(t.onOrOff != previous[index]){
-                    previous[index] = t.onOrOff
+                if(t.lastSendSignal != previous[index]){
+                    previous[index] = t.lastSendSignal
                     flipped[index] += totalIndex + 1
                 }
             }
@@ -129,19 +126,14 @@ object Day20 : Challenge() {
         error("")
     }
 
-    fun simulate2(): Boolean {
+    fun simulate2() {
         val nodes = parsed.getValue("broadcaster").output.map { Triple("",it, false) }.toMutableList()
         while(nodes.isNotEmpty()){
             val (from, to, signal) = nodes.removeFirst()
-            val (output, sent) = parsed[to]?.receive(from, signal) ?: if(signal == false){
-                return true
-            } else{
-                continue
-            }
+            val (output, sent) = parsed[to]?.receive(from, signal) ?: continue
             for(o in output){
                 nodes.add(Triple(to, o, sent))
             }
         }
-        return false
     }
 }
