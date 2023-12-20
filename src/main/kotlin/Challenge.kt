@@ -1,4 +1,6 @@
 
+import helpers.lcm
+import io.github.rchowell.dotlin.digraph
 import java.io.File
 import kotlin.time.measureTimedValue
 
@@ -61,3 +63,50 @@ fun Point.rotLeft() = second to -first
 
 fun Point.perpendicular() = sequenceOf(rotLeft(), rotRight())
 operator fun Point.not() = sequenceOf(rotLeft(), -this, rotRight())
+
+fun chineseRemainder(values: List<Pair<Long, Long>>): Long {
+    if (values.isEmpty()) {
+        return 0L
+    }
+    var result = values[0].first
+    var lcm = values[0].second
+    for (i in 1 until values.size) {
+        val (base, modulo) = values[i]
+        val target = base % modulo
+        while (result % modulo != target) {
+            result += lcm
+        }
+        lcm = lcm.lcm(modulo)
+    }
+    return result
+}
+
+fun <K,V> Map<K, V>.toGraph() {
+    digraph {
+        this@toGraph.forEach { (key, value) ->
+            "$key" - "$value"
+        }
+    }.let { println(it.dot()) }
+}
+
+@JvmName("toGraphListMapper")
+fun <K,V> Map<K, List<V>>.toGraph(valueMapper: (V) -> Any ) {
+    digraph {
+        this@toGraph.forEach { (key, value) ->
+            value.forEach {
+                "$key" - "$it"
+            }
+        }
+    }.let { println(it.dot()) }
+}
+
+@JvmName("toGraphList")
+fun <K,V> Map<K, List<V>>.toGraph() {
+    digraph {
+        this@toGraph.forEach { (key, value) ->
+            value.forEach {
+                "$key" - "$it"
+            }
+        }
+    }.let { println(it.dot()) }
+}

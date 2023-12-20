@@ -2,10 +2,12 @@ package day20
 
 import Challenge
 import helpers.lcm
+import toGraph
 
 fun main() {
     Day20.part1().let(::println)
     Day20.part2().let(::println)
+    Day20.solve().let(::println)
 }
 
 object Day20 : Challenge() {
@@ -90,6 +92,7 @@ object Day20 : Challenge() {
         .let { (t, f) -> t * f }
 
     override fun part2(): Any? {
+        parsed.mapValues { it.value.output }.toGraph{ it }
         parsed.values.forEach(Module::reset)
         val flipflops = parsed.values.filterIsInstance<FlipFlop>()
         val states = BooleanArray(flipflops.size){ false }
