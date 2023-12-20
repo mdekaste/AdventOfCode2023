@@ -11,21 +11,21 @@ fun main() {
 object Day20 : Challenge() {
     val parsed = input.lines().map {
         it.split(" -> ").let { (a, b) ->
-            val type = if(a.contains('%') || a.contains('&')) a[0] else null
-            val rest = if(a.contains('%') || a.contains('&')) a.substring(1..<a.length) else a
-            when(type){
+            val type = if (a.contains('%') || a.contains('&')) a[0] else null
+            val rest = if (a.contains('%') || a.contains('&')) a.substring(1..<a.length) else a
+            when (type) {
                 null -> Start(rest, b.split(", "))
                 '%' -> FlipFlop(rest, b.split(", "))
                 '&' -> Conjuction(rest, b.split(", "))
                 else -> error("")
             }
         }
-    }.associateBy { it.key }.also {  map ->
-        map.forEach { key, value ->
-            for(o in value.output){
-                val target = map[o] ?: continue
-                if(target is Conjuction){
-                    target.input[key] = false
+    }.associateBy { it.key }.also { map ->
+        map.forEach { (key, value) ->
+            for (o in value.output) {
+                when (val target = map[o]) {
+                    is Conjuction -> target.input[key] = false
+                    else -> Unit
                 }
             }
         }
@@ -36,104 +36,75 @@ object Day20 : Challenge() {
         val key: String
         val output: List<String>
         fun receive(from: String, signal: Boolean): Pair<List<String>, Boolean>
+        fun reset(){ }
     }
 
-    data class Start(
-        override val key: String,
-        override val output: List<String>
-    ) : Module {
+    data class Start(override val key: String, override val output: List<String>) : Module {
         override val lastSendSignal: Boolean get() = false
         override fun receive(from: String, signal: Boolean) = output to signal
     }
 
-    data class FlipFlop(
-        override val key: String,
-        override val output: List<String>
-    ) : Module {
+    data class FlipFlop(override val key: String, override val output: List<String>) : Module {
         override var lastSendSignal: Boolean = false
         override fun receive(from: String, signal: Boolean): Pair<List<String>, Boolean> {
-            return when(signal){
-                true -> emptyList<String>()
+            return when (signal) {
+                true -> emptyList()
                 false -> output.also { lastSendSignal = !lastSendSignal }
             } to lastSendSignal
         }
+
+        override fun reset() {
+            lastSendSignal = false
+        }
     }
 
-    data class Conjuction(
-        override val key: String,
-        override val output: List<String>
-    ) : Module {
+    data class Conjuction(override val key: String, override val output: List<String>) : Module {
         val input: MutableMap<String, Boolean> = mutableMapOf()
-        override var lastSendSignal: Boolean = false
+        override val lastSendSignal: Boolean get() = !input.values.all { it }
         override fun receive(from: String, signal: Boolean): Pair<List<String>, Boolean> {
             input[from] = signal
-            lastSendSignal = !input.values.all{ it }
             return output to lastSendSignal
         }
+
+        override fun reset() {
+            input.mapValues { false }
+        }
     }
 
-    fun simulate(): Pair<Int, Int>{
-        val nodes = parsed.getValue("broadcaster").output.map { Triple("",it, false) }.toMutableList()
-        var trueCount = 0
-        var falseCount = nodes.size + 1
-        while(nodes.isNotEmpty()){
+    private fun simulate() = sequence{
+        val nodes = mutableListOf(Triple("input", "broadcaster", false))
+        while (nodes.isNotEmpty()) {
             val (from, to, signal) = nodes.removeFirst()
+            yield(signal)
             val (output, sent) = parsed[to]?.receive(from, signal) ?: continue
-            for(o in output){
-                if(sent){
-                    trueCount++
-                } else {
-                    falseCount++
-                }
+            for (o in output) {
                 nodes.add(Triple(to, o, sent))
             }
         }
-        return trueCount to falseCount
     }
 
-    override fun part1(): Any? {
-        return null
-        //return generateSequence { simulate() }.take(1000).fold(0L to 0L){ (a,b), (c,d) -> a + c to b + d}.let { it.first * it.second }
-    }
+    override fun part1() = generateSequence { simulate() }
+        .take(1000)
+        .flatten()
+        .fold(0 to 0){ (t, f), b -> if(b) t + 1 to f else t to f + 1 }
+        .let { (t, f) -> t * f }
 
     override fun part2(): Any? {
-        val initial = parsed.values.filterIsInstance<FlipFlop>().map { it.lastSendSignal }
-        val names = parsed.values.filterIsInstance<FlipFlop>().map { it.key }
-        //29 43 44 46
-        //rb xk vj nc
-        val previous = MutableList(initial.size){ false }
-        val flipped = MutableList(initial.size){ mutableListOf<Int>() }
+        parsed.values.forEach(Module::reset)
+        val flipflops = parsed.values.filterIsInstance<FlipFlop>()
+        val states = BooleanArray(flipflops.size){ false }
+        val flips = List(flipflops.size){ mutableListOf<Int>() }
         var totalIndex = 0
-        while(true){
-            simulate2()
-            parsed.values.filterIsInstance<FlipFlop>().forEachIndexed { index, t ->
-                if(t.lastSendSignal != previous[index]){
-                    previous[index] = t.lastSendSignal
-                    flipped[index] += totalIndex + 1
+        while(flips.any { it.size < 2 }){
+            simulate().last()
+            flipflops.forEachIndexed { index, t ->
+                if (t.lastSendSignal != states[index]) {
+                    states[index] = t.lastSendSignal
+                    flips[index] += totalIndex + 1
                 }
             }
-            if(flipped[29].size == 4 && flipped[43].size == 4 && flipped[44].size == 4 && flipped[46].size == 4){
-                val x = flipped[29]
-                val y = flipped[43]
-                val z = flipped[44]
-                val a = flipped[46]
-                println("help")
-                return flipped.map { it[1].toLong() }.filter { it.countOneBits() != 1 }.reduce { acc, longs -> acc.lcm(longs) }
-            }
-            // println(flipped[29] + " " + flipped[43] + " " + flipped[44] + " " + flipped[46])
             totalIndex++
         }
-        error("")
-    }
-
-    fun simulate2() {
-        val nodes = parsed.getValue("broadcaster").output.map { Triple("",it, false) }.toMutableList()
-        while(nodes.isNotEmpty()){
-            val (from, to, signal) = nodes.removeFirst()
-            val (output, sent) = parsed[to]?.receive(from, signal) ?: continue
-            for(o in output){
-                nodes.add(Triple(to, o, sent))
-            }
-        }
+        return flips.map { it[1].toLong() }.filter { it.countOneBits() != 1 }.reduce(Long::lcm)
     }
 }
