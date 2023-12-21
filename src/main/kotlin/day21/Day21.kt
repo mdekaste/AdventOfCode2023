@@ -42,42 +42,47 @@ object Day21 : Challenge() {
         error("")
     }
 
-    override fun part2() = solve(50)
+    override fun part2() = solve(5000)
 
     fun solve(depth: Long = 26501365): Long {
         var frontier: Frontier = setOf(startPoint) to emptySet<Point>()
-        var visited = mutableSetOf(startPoint)
-        val frontiers: MutableMap<Frontier, Set<Point>> = mutableMapOf(frontier to visited.toSet())
-        var index = 0L
+        var visited = mutableMapOf(0 to 1L).withDefault { 0L }
+        val frontiers = mutableMapOf(frontier to 1L)
+        var index = 0
         var indexOfRepetition = 0
         var sizeOfRepetition = 0
-        var sumAtRepetitionIndex = 0L
-        var sumAtEnd = 0L
+        var cycles: List<Pair<Pair<Set<Point>, Set<Point>>, Long>>
+        var countsCycle: List<Long>
+
         while(true){
             val newFrontier = mutableSetOf<Point>()
             val froms = frontier.first
-            for(point in frontier.first){
+            for(point in froms){
                 point.cardinals().forEach { newPoint ->
                     if(parsed[newPoint.pq()] != '#' && newPoint !in frontier.second){
                         newFrontier.add(newPoint)
                     }
                 }
             }
-            visited += newFrontier
             val pqFrontier = newFrontier.map { it.pq() }.toSet()
             val pqFroms = froms.map { it.pq() }.toSet()
+            val newCount = visited.getValue(index - 1) + newFrontier.size
             if(frontiers.containsKey(pqFrontier to pqFroms)){
                 indexOfRepetition = frontiers.keys.indexOf(pqFrontier to pqFroms)
-                sizeOfRepetition = frontiers.size + 1 - indexOfRepetition
-                sumAtRepetitionIndex = frontiers.getValue(pqFrontier to pqFroms).size.toLong()
-                sumAtEnd = visited.size.toLong()
+                println(frontiers[pqFrontier to pqFroms])
+                sizeOfRepetition = index.toInt() - indexOfRepetition
+                countsCycle = frontiers.values.drop(indexOfRepetition) + newCount
+                cycles = frontiers.entries.drop(indexOfRepetition).map { it.key to it.value }
                 break
-            } else {
-                frontiers[pqFrontier to pqFroms] = visited.toSet()
             }
-            index++
+            frontiers[pqFrontier to pqFroms] = newCount
+            visited[++index] = newCount
             frontier = newFrontier to froms
         }
+        var toCheck = depth - 1
+        var additiveCycleSum = countsCycle.last() - countsCycle[0]
+        val sums = countsCycle.dropLast(1).map { it - countsCycle[0] }
+        val result = ((toCheck - indexOfRepetition) / sizeOfRepetition) * additiveCycleSum + countsCycle[0] + sums[((toCheck - indexOfRepetition) % sizeOfRepetition).toInt()]
         return 0L
     }
 }
