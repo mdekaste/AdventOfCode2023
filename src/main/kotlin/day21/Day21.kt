@@ -42,17 +42,20 @@ object Day21 : Challenge() {
         error("")
     }
 
-    override fun part2() = solve(5000)
+    override fun part2() = solve2()
 
     fun solve(depth: Long = 26501365): Long {
         var frontier: Frontier = setOf(startPoint) to emptySet<Point>()
         var visited = mutableMapOf(0 to 1L).withDefault { 0L }
-        val frontiers = mutableMapOf(frontier to 1L)
+        val allPoints = mutableSetOf(startPoint)
+        val counterOfPqPoints = mutableMapOf(startPoint to 1L).withDefault { 0L }
+        val frontiers = mutableMapOf(frontier to (0L to counterOfPqPoints.toMap()))
         var index = 0
         var indexOfRepetition = 0
         var sizeOfRepetition = 0
-        var cycles: List<Pair<Pair<Set<Point>, Set<Point>>, Long>>
-        var countsCycle: List<Long>
+        var cycles:
+                List<Pair<Frontier /* = Pair<Set<Point /* = Pair<Int, Int> */>, Set<Point /* = Pair<Int, Int> */>> */, Pair<Long, Map<Pair<Int, Int>, Long>>>>
+        var countsCycle: List<Pair<Long, Map<Point, Long>>>
 
         while(true){
             val newFrontier = mutableSetOf<Point>()
@@ -61,28 +64,82 @@ object Day21 : Challenge() {
                 point.cardinals().forEach { newPoint ->
                     if(parsed[newPoint.pq()] != '#' && newPoint !in frontier.second){
                         newFrontier.add(newPoint)
+                        if(allPoints.add(newPoint)){
+                            counterOfPqPoints[newPoint.pq()] = counterOfPqPoints.getValue(newPoint.pq()) + 1
+                        }
                     }
                 }
             }
             val pqFrontier = newFrontier.map { it.pq() }.toSet()
             val pqFroms = froms.map { it.pq() }.toSet()
-            val newCount = visited.getValue(index - 1) + newFrontier.size
+            val newCount: Long = visited.getValue(index - 1) + newFrontier.size
             if(frontiers.containsKey(pqFrontier to pqFroms)){
                 indexOfRepetition = frontiers.keys.indexOf(pqFrontier to pqFroms)
                 println(frontiers[pqFrontier to pqFroms])
                 sizeOfRepetition = index.toInt() - indexOfRepetition
-                countsCycle = frontiers.values.drop(indexOfRepetition) + newCount
+                countsCycle = frontiers.values.drop(indexOfRepetition) + (newCount to counterOfPqPoints.toMap())
                 cycles = frontiers.entries.drop(indexOfRepetition).map { it.key to it.value }
                 break
             }
-            frontiers[pqFrontier to pqFroms] = newCount
+            frontiers[pqFrontier to pqFroms] = newCount to counterOfPqPoints.toMap()
             visited[++index] = newCount
             frontier = newFrontier to froms
         }
         var toCheck = depth - 1
-        var additiveCycleSum = countsCycle.last() - countsCycle[0]
-        val sums = countsCycle.dropLast(1).map { it - countsCycle[0] }
-        val result = ((toCheck - indexOfRepetition) / sizeOfRepetition) * additiveCycleSum + countsCycle[0] + sums[((toCheck - indexOfRepetition) % sizeOfRepetition).toInt()]
+        var additiveCycleSum = countsCycle.last().first - countsCycle[0].first
+        val sums = countsCycle.dropLast(1).map { it.first - countsCycle[0].first }
+        val result = ((toCheck - indexOfRepetition) / sizeOfRepetition) * additiveCycleSum + countsCycle[0].first + sums[((toCheck - indexOfRepetition) % sizeOfRepetition).toInt()]
         return 0L
+    }
+
+    data class State(
+        val currentFrontier: Set<Point>,
+        val previousFrontier: Set<Point>
+    )
+
+    data class Work(
+        val state: State,
+        val work: List<List<Set<Point>>>
+    )
+
+    fun solve2(){
+        val map = Array(height){ Array(width){ mutableSetOf<Point>() } }
+        map[startPoint.first][startPoint.second].add(startPoint)
+        var previousFrontier = emptySet<Point>()
+        var currentFrontier = setOf(startPoint)
+        val frontiers = mutableMapOf(currentFrontier)
+        while(currentFrontier.isNotEmpty()){
+            val newFrontier = mutableSetOf<Point>()
+            for(point in currentFrontier){
+                for(neighbour in point.cardinals()){
+                    if(neighbour !in previousFrontier && parsed[neighbour.pq()] != '#'){
+                        val (oPoint, dimension) = PqPoint(neighbour)
+                        map[oPoint.first][oPoint.second].add(dimension)
+                        newFrontier.add(neighbour)
+                    }
+                }
+            }
+            if(!frontiers.add(newFrontier.toPq())){
+                val maxWidth = map.maxOf { it.maxOf { it.size.toString().length } }
+                for(y in 0 until height){
+                    for(x in 0 until width){
+                        print(map[y][x].size.toString().padStart(maxWidth + 1, ' '))
+                    }
+                    println()
+                }
+                break
+            }
+            previousFrontier = currentFrontier
+            currentFrontier = newFrontier
+        }
+    }
+
+    fun Set<Point>.toPq() = mapTo(mutableSetOf()){ it.pq() }
+
+    data class PqPoint(
+        val point: Point,
+        val dimension: Point
+    ){
+        constructor(point: Point) : this(point.pq(), point.first / height to point.second / width)
     }
 }
