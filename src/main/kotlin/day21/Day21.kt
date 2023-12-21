@@ -11,34 +11,12 @@ fun main(){
 }
 
 object Day21 : Challenge() {
-    val parsed = input.lines().flatMapIndexed { y, c ->
-        c.mapIndexed { x, c -> y to x to c }
-    }.toMap()
+    val parsed = input.lines().flatMapIndexed { y, c -> c.mapIndexed { x, c -> y to x to c } }.toMap()
     val startPoint = parsed.entries.first { it.value == 'S' }.key
-    val height = parsed.maxOf { it.key.first } + 1
-    val width = parsed.maxOf{ it.key.second } + 1
+    private val height = parsed.maxOf { it.key.first } + 1
+    private val width = parsed.maxOf{ it.key.second } + 1
 
     fun Point.pq() = floorMod(first, height) to floorMod(second, width)
-
-    override fun part1(): Int {
-        val map = mutableMapOf(0 to mutableSetOf(startPoint))
-        var key = 0
-        while(map.isNotEmpty()){
-            val points = map.remove(key)!!
-            if(key == 64){
-                return points.size
-            }
-            points.forEach { o ->
-                o.cardinals().forEach { s ->
-                    if(parsed[s.pq()] != '#'){
-                        map.getOrPut(key + 1){ mutableSetOf() }.apply { add(s.pq()) }
-                    }
-                }
-            }
-            key++
-        }
-        error("")
-    }
 
     data class State(
         val previousScore: Long = 0L,
@@ -65,6 +43,8 @@ object Day21 : Challenge() {
             state = State(state.score, state.currentFrontier, newFrontier, state.previousScore + newFrontier.size)
         }
     }
+
+    override fun part1() = states.take(65).last().score
 
     fun solveGeneric(depth: Int): Long {
         val memory = mutableMapOf<Set<Point>, MutableList<Long>>().withDefault { mutableListOf() }
@@ -98,6 +78,6 @@ object Day21 : Challenge() {
         return Triple(a, b, c)
     }
 
-    override fun part2() = solveGeneric(1000)
+    override fun part2() = solveGeneric(26501365)
 
 }
