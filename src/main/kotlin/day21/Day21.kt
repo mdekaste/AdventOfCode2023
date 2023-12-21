@@ -41,16 +41,16 @@ object Day21 : Challenge() {
     }
 
     data class State(
-        val previousScore: Long,
-        val previousFrontier: Set<Point>,
-        val currentFrontier: Set<Point>,
-        val score: Long,
+        val previousScore: Long = 0L,
+        val previousFrontier: Set<Point> = emptySet(),
+        val currentFrontier: Set<Point> = setOf(startPoint),
+        val score: Long = 1L,
     ) {
         val memoryState by lazy { currentFrontier.map { it.pq() }.toSet() }
     }
 
-    private val states = sequence<State>{
-        var state = State(0, emptySet(), setOf(startPoint), 1L)
+    private val states = sequence{
+        var state = State()
         while(true){
             yield(state)
             val newFrontier = mutableSetOf<Point>()
@@ -67,20 +67,20 @@ object Day21 : Challenge() {
     }
 
     fun solveGeneric(depth: Int): Long {
-        val memory = mutableMapOf<Set<Point>, MutableList<Long>>()
+        val memory = mutableMapOf<Set<Point>, MutableList<Long>>().withDefault { mutableListOf() }
         for(state in states){
             when(memory[state.memoryState]?.size){
                 3 -> break
-                else -> memory[state.memoryState] = memory.getOrPut(state.memoryState){ mutableListOf() }.apply { add(state.score) }
+                else -> memory[state.memoryState] = memory.getValue(state.memoryState).apply { add(state.score) }
             }
         }
 
         val answers = memory.values.toList()
-        val indexOfCycles = answers.indexOfFirst { it.size == 3 }
+        val indexOfCycles = answers.indexOfFirst { it.size >= 3 }
         val justValues = answers.subList(0, indexOfCycles).map { it.first() }
 
         return when(depth){
-            in 0 until indexOfCycles -> justValues[depth]
+            in 0..<indexOfCycles -> justValues[depth]
             else -> {
                 val formulas = answers.subList(indexOfCycles, answers.size).map { (y1, y2, y3) -> toQuadratic(y1, y2, y3) }
                 val sizeOfCycle = formulas.size
@@ -98,6 +98,6 @@ object Day21 : Challenge() {
         return Triple(a, b, c)
     }
 
-    override fun part2() = solveGeneric(26501365)
+    override fun part2() = solveGeneric(1000)
 
 }
