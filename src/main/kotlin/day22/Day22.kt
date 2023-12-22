@@ -9,56 +9,36 @@ fun main() {
     Day22.part2().let(::println)
 }
 
-typealias XYZCoord = List<Int>
 
 private operator fun <E> List<E>.component6() = get(5)
 
 object Day22 : Challenge() {
-    val bricks = input.lines().mapIndexed { index, s ->
+    private val bricks = input.lines().mapIndexed { index, s ->
         s.extractLongs().let { (x1, y1, z1, x2, y2, z2) -> Brick(z1..z2, y1..y2, x1..x2) }
     }.sortedWith(compareBy { it.zRange.first })
 
-    val settled = buildMap {
+    private val settled = buildMap {
         for (brick in bricks) {
             brick.settleDown()
         }
     }
 
     override fun part1(): Any? {
-        val fallenBricks = settled.toMutableMap()
-        val cannotRemove = fallenBricks.mapNotNull { it.value.singleOrNull() }.toSet()
-        val canRemove = fallenBricks.values.filter { it.size >= 2 }.flatten().toSet()
-        val isOnTop = fallenBricks.keys.filter { it !in fallenBricks.values.flatten().toSet() }
+        val cannotRemove = settled.mapNotNull { it.value.singleOrNull() }.toSet()
+        val canRemove = settled.values.filter { it.size >= 2 }.flatten().toSet()
+        val isOnTop = settled.keys.filter { it !in settled.values.flatten().toSet() }
         return (canRemove - cannotRemove + isOnTop).size
     }
 
-    override fun part2(): Any? {
-        fun solve(remove: Set<Brick>, map: Map<Brick, List<Brick>>): Long = when (remove) {
-            emptySet<Brick>() -> 0
-            else -> {
-                val next = map.mapValues { it.value - remove }
-                val toCheck = next.filter { it.value.isEmpty() }.keys
-                toCheck.size + solve(toCheck, next.filterValues { it.isNotEmpty() })
-            }
-        }
-        return settled.keys.sumOf { solve(setOf(it), settled.filterValues { it.isNotEmpty() }) }
-    }
+    override fun part2() = settled.keys.sumOf { solve(setOf(it), settled.filterValues { it.isNotEmpty() }) }
 
-    private fun remove(bricks: Set<Brick>, map: MutableMap<Brick, MutableSet<Brick>>): Set<Brick> {
-        if (bricks.isEmpty())
-            return emptySet()
-        val mapIterator = map.iterator()
-        val nextFall = mutableSetOf<Brick>()
-        while (mapIterator.hasNext()) {
-            mapIterator.next().let {
-                it.value -= bricks
-                if (it.value.isEmpty()) {
-                    mapIterator.remove()
-                    nextFall.add(it.key)
-                }
-            }
+    fun solve(remove: Set<Brick>, map: Map<Brick, List<Brick>>): Long = when(remove){
+        emptySet<Brick>() -> 0
+        else -> {
+            val next = map.mapValues { it.value - remove }
+            val toCheck = next.filter { it.value.isEmpty() }.keys
+            toCheck.size + solve(toCheck, next.filterValues { it.isNotEmpty() })
         }
-        return nextFall + remove(nextFall, map)
     }
 }
 
