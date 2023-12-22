@@ -15,47 +15,45 @@ private operator fun <E> List<E>.component6() = get(5)
 object Day22 : Challenge() {
     val parsed = input.lines().mapIndexed { index, s ->
         s.extractInts().let { (x1, y1, z1, x2, y2, z2) -> Brick(y1, x1, z1, y2, x2, z2) }
+    }.sortedWith(compareBy(Brick::fromZ)).let {
+        buildMap<Brick, List<Brick>> {
+            for(brick in it){
+                brick.moveDown()
+            }
+        }
     }
 
     override fun part1(): Any? {
-        val bricks = parsed.sortedWith(
-            compareBy(Brick::fromZ).thenBy(Brick::toZ)
-        ).toMutableList()
-        val fallenBricks = mutableMapOf<Brick, List<Brick>>()
-        while (bricks.isNotEmpty()) {
-            val brickToFall = bricks.removeFirst()
-            brickToFall.moveDown(fallenBricks.keys).let { (a, b) -> fallenBricks.put(a, b) }
-        }
+        val fallenBricks = parsed.toMutableMap()
         val cannotRemove = fallenBricks.filter { it.value.size == 1 }.map { it.value[0] }.toSet()
         val canRemove = fallenBricks.filter { it.value.size >= 2 }.flatMap{ it.value }.toSet()
         val isOnTop = fallenBricks.filter { (key, _) -> key !in fallenBricks.values.flatten().toSet() }.keys
-        return (canRemove - cannotRemove + isOnTop).distinct().size
+        return (canRemove - cannotRemove + isOnTop).size
     }
 
     override fun part2(): Any? {
-        val bricks = parsed.sortedWith(
-            compareBy(Brick::fromZ)
-        ).toMutableList()
-        val fallenBricks = mutableMapOf<Brick, List<Brick>>()
-        while (bricks.isNotEmpty()) {
-            val brickToFall = bricks.removeFirst()
-            brickToFall.moveDown(fallenBricks.keys).let { (a, b) -> fallenBricks.put(a, b) }
-        }
-        val cannotRemove = fallenBricks.filter { it.value.size == 1 }.map { it.value[0] }.toSet()
-        val canRemove = fallenBricks.filter { it.value.size >= 2 }.flatMap{ it.value }.toSet()
-        val isOnTop = fallenBricks.filter { (key, _) -> key !in fallenBricks.values.flatten().toSet() }.keys
-        val candidates = fallenBricks.filter { it.value.size == 0 }.keys.toSet()
-        val mapToCheck = fallenBricks - fallenBricks.filter { it.value.size == 0 }.keys
-        return fallenBricks.keys.map { remove(setOf(it), mapToCheck) }.sumOf { it.size }
+        val fallenBricks = parsed.toMutableMap()
+        val mapToCheck = fallenBricks - fallenBricks.filter { it.value.isEmpty() }.keys
+        return fallenBricks.keys
+            .map { remove(setOf(it), mapToCheck.mapValues { (_, value) -> value.toMutableSet() }.toMutableMap()) }
+            .sumOf { it.size }
     }
 
-    fun remove(bricks: Set<Brick>, map: Map<Brick, List<Brick>>): Set<Brick> {
+    private fun remove(bricks: Set<Brick>, map: MutableMap<Brick, MutableSet<Brick>>): Set<Brick> {
         if(bricks.isEmpty())
             return emptySet()
-        var newMap = map.toMap().mapValues { it.value - bricks }.toMutableMap()
-        val willFall = newMap.filter { it.value.isEmpty() }.keys
-        newMap -= willFall
-        return willFall + remove(willFall, newMap)
+        val mapIterator = map.iterator()
+        var nextFall = mutableSetOf<Brick>()
+        while(mapIterator.hasNext()){
+            mapIterator.next().let {
+                it.value -= bricks
+                if(it.value.isEmpty()){
+                    mapIterator.remove()
+                    nextFall.add(it.key)
+                }
+            }
+        }
+        return nextFall + remove(nextFall, map)
     }
 }
 
@@ -79,21 +77,23 @@ data class Brick(
     val toZ: Int
 ) {
     val height = toZ - fromZ + 1
-    fun moveDown(bricks: Set<Brick>): Pair<Brick, List<Brick>> {
+    context(MutableMap<Brick, List<Brick>>)
+    fun moveDown() {
         val bottom = bottom()
         var z = bottom.first().z
         var prevBottom = bottom
         var curBottom = bottom
         while (z >= 1) {
-            val touchingBricks = bricks.filter { b -> curBottom.any { it in b } }
+            val touchingBricks = keys.filter { b -> curBottom.any { it in b } }
             if(touchingBricks.isNotEmpty()){
-                return prevBottom.toBrick(height) to touchingBricks
+                put(prevBottom.toBrick(height), touchingBricks)
+                return
             }
             prevBottom = curBottom
             curBottom = curBottom.map { it.doMoveDown() }
             z--
         }
-        return prevBottom.toBrick(height) to emptyList()
+        put(prevBottom.toBrick(height), emptyList())
     }
 
     operator fun contains(point3D: Point3D): Boolean {
