@@ -1,7 +1,8 @@
 package day22
 
 import Challenge
-import helpers.extractInts
+import helpers.extractLongs
+import helpers.intersect
 
 fun main() {
     Day22.part1().let(::println)
@@ -13,26 +14,26 @@ typealias XYZCoord = List<Int>
 private operator fun <E> List<E>.component6() = get(5)
 
 object Day22 : Challenge() {
-    val parsed = input.lines().mapIndexed { index, s ->
-        s.extractInts().let { (x1, y1, z1, x2, y2, z2) -> Brick(y1, x1, z1, y2, x2, z2) }
-    }.sortedWith(compareBy(Brick::fromZ)).let {
-        buildMap<Brick, List<Brick>> {
-            for(brick in it){
-                brick.moveDown()
-            }
+    val bricks = input.lines().mapIndexed { index, s ->
+        s.extractLongs().let { (x1, y1, z1, x2, y2, z2) -> Brick(z1..z2, y1..y2, x1..x2) }
+    }.sortedWith(compareBy { it.zRange.first })
+
+    val settled = buildMap {
+        for (brick in bricks) {
+            brick.settleDown()
         }
     }
 
     override fun part1(): Any? {
-        val fallenBricks = parsed.toMutableMap()
-        val cannotRemove = fallenBricks.filter { it.value.size == 1 }.map { it.value[0] }.toSet()
-        val canRemove = fallenBricks.filter { it.value.size >= 2 }.flatMap{ it.value }.toSet()
-        val isOnTop = fallenBricks.filter { (key, _) -> key !in fallenBricks.values.flatten().toSet() }.keys
+        val fallenBricks = settled.toMutableMap()
+        val cannotRemove = fallenBricks.mapNotNull { it.value.singleOrNull() }.toSet()
+        val canRemove = fallenBricks.values.filter { it.size >= 2 }.flatten().toSet()
+        val isOnTop = fallenBricks.keys.filter { it !in fallenBricks.values.flatten().toSet() }
         return (canRemove - cannotRemove + isOnTop).size
     }
 
     override fun part2(): Any? {
-        val fallenBricks = parsed.toMutableMap()
+        val fallenBricks = settled.toMutableMap()
         val mapToCheck = fallenBricks - fallenBricks.filter { it.value.isEmpty() }.keys
         return fallenBricks.keys
             .map { remove(setOf(it), mapToCheck.mapValues { (_, value) -> value.toMutableSet() }.toMutableMap()) }
@@ -40,14 +41,14 @@ object Day22 : Challenge() {
     }
 
     private fun remove(bricks: Set<Brick>, map: MutableMap<Brick, MutableSet<Brick>>): Set<Brick> {
-        if(bricks.isEmpty())
+        if (bricks.isEmpty())
             return emptySet()
         val mapIterator = map.iterator()
-        var nextFall = mutableSetOf<Brick>()
-        while(mapIterator.hasNext()){
+        val nextFall = mutableSetOf<Brick>()
+        while (mapIterator.hasNext()) {
             mapIterator.next().let {
                 it.value -= bricks
-                if(it.value.isEmpty()){
+                if (it.value.isEmpty()) {
                     mapIterator.remove()
                     nextFall.add(it.key)
                 }
@@ -57,60 +58,33 @@ object Day22 : Challenge() {
     }
 }
 
-fun List<Point3D>.toBrick(height: Int): Brick {
-    val minY = minOf { it.y }
-    val minX = minOf { it.x }
-    val minZ = minOf { it.z }
-
-    val maxY = maxOf { it.y }
-    val maxX = maxOf { it.x }
-    val maxZ = minZ + height - 1
-    return Brick(minY, minX, minZ, maxY, maxX, maxZ)
-}
-
 data class Brick(
-    val fromY: Int,
-    val fromX: Int,
-    val fromZ: Int,
-    val toY: Int,
-    val toX: Int,
-    val toZ: Int
+    val zRange: LongRange,
+    val yRange: LongRange,
+    val xRange: LongRange
 ) {
-    val height = toZ - fromZ + 1
+    private val top by lazy { copy(zRange = zRange.last..zRange.last) }
+    private val bottom by lazy { copy(zRange = zRange.first..zRange.first) }
+
     context(MutableMap<Brick, List<Brick>>)
-    fun moveDown() {
-        val bottom = bottom()
-        var z = bottom.first().z
+    fun settleDown(): Any? {
         var prevBottom = bottom
-        var curBottom = bottom
-        while (z >= 1) {
-            val touchingBricks = keys.filter { b -> curBottom.any { it in b } }
-            if(touchingBricks.isNotEmpty()){
-                put(prevBottom.toBrick(height), touchingBricks)
-                return
+        var curBottom = bottom.moveDown()
+        while(true){
+            if(curBottom.zRange.first == 0L){
+                return put(moveDown(zRange.first - prevBottom.zRange.first), emptyList())
+            }
+            val intersections = keys.filter { it.top.intersects(curBottom) }
+            if(intersections.isNotEmpty()){
+                return put(moveDown(zRange.first - prevBottom.zRange.first), intersections)
             }
             prevBottom = curBottom
-            curBottom = curBottom.map { it.doMoveDown() }
-            z--
+            curBottom = curBottom.moveDown()
         }
-        put(prevBottom.toBrick(height), emptyList())
     }
+    private fun moveDown(amount: Long = 1): Brick = copy(zRange = (zRange.first - amount)..(zRange.last - amount))
 
-    operator fun contains(point3D: Point3D): Boolean {
-        return point3D.z in fromZ..toZ && point3D.x in fromX..toX && point3D.y in fromY..toY
-    }
-
-    fun bottom(): List<Point3D> {
-        val bottomZ = fromZ
-        val layer = (fromY..toY).flatMap { y -> (fromX..toX).map { x -> Point3D(y, x, bottomZ) } }
-        return layer
-    }
-}
-
-data class Point3D(
-    val y: Int,
-    val x: Int,
-    val z: Int
-){
-    fun doMoveDown() = copy(z = z - 1)
+    private fun intersects(other: Brick) = !zRange.intersect(other.zRange).isEmpty() &&
+            !xRange.intersect(other.xRange).isEmpty() &&
+            !yRange.intersect(other.yRange).isEmpty()
 }
