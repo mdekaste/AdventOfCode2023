@@ -32,7 +32,7 @@ object Day22 : Challenge() {
 
     override fun part2() = settled.keys.sumOf { solve(setOf(it), settled.filterValues { it.isNotEmpty() }) }
 
-    fun solve(remove: Set<Brick>, map: Map<Brick, List<Brick>>): Long = when(remove){
+    fun solve(remove: Set<Brick>, map: Map<Brick, List<Brick>>): Long = when (remove) {
         emptySet<Brick>() -> 0
         else -> {
             val next = map.mapValues { it.value - remove }
@@ -51,19 +51,13 @@ data class Brick(
     private val bottom by lazy { copy(zRange = zRange.first..zRange.first) }
 
     context(MutableMap<Brick, List<Brick>>)
-    fun settleDown(): Any? {
-        var prevBottom = bottom
-        var curBottom = bottom.moveDown()
-        while (true) {
-            if (curBottom.zRange.first == 0L) {
-                return put(moveDown(zRange.first - prevBottom.zRange.first), emptyList())
-            }
-            val intersections = keys.filter { it.top.intersects(curBottom) }
-            if (intersections.isNotEmpty()) {
-                return put(moveDown(zRange.first - prevBottom.zRange.first), intersections)
-            }
-            prevBottom = curBottom
-            curBottom = curBottom.moveDown()
+    fun settleDown(): Any? = generateSequence(bottom.moveDown()) { it.moveDown() }.forEach { brick ->
+        if (brick.zRange.first == 0L) {
+            return put(moveDown(zRange.first - brick.zRange.first - 1), emptyList())
+        }
+        val intersections = keys.filter { it.top.intersects(brick) }
+        if (intersections.isNotEmpty()) {
+            return put(moveDown(zRange.first - brick.zRange.first - 1), intersections)
         }
     }
 
