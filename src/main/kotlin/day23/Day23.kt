@@ -25,7 +25,7 @@ object Day23 : Challenge() {
     val startpoint = 0 to 1
     val endpoint = parsed.maxOf { it.key.first } to parsed.maxOf { it.key.second } - 1
 
-    override fun part1() = solve(true)
+    override fun part1() = solve{ !it.blocked }
 
     val graph = buildMap<Point, MutableMap<Point, Path>> {
         var paths = setOfNotNull(buildPath(startpoint, startpoint.south()))
@@ -33,9 +33,9 @@ object Day23 : Challenge() {
             val newPaths = mutableSetOf<Path>()
             for (path in paths) {
                 getOrPut(path.source) { mutableMapOf() }[path.prev] = path
-                path.cur.forEach { p ->
-                    buildPath(path.prev, p)?.also {
-                        if (!containsKey(it.source)) {
+                if (!containsKey(path.prev)) {
+                    path.cur.forEach { p ->
+                        buildPath(path.prev, p)?.also {
                             newPaths.add(it)
                         }
                     }
@@ -63,22 +63,15 @@ object Day23 : Challenge() {
 
     private fun blocked(direction: Point, point: Point) = directions[direction] == parsed[point]
 
+    override fun part2() = solve { true }
 
-    override fun part2() = solve(false)
-
-    private fun solve(directed: Boolean = false) = with(mutableSetOf(startpoint)) {
-        dfs(startpoint,
-            if (directed) {
-                { !it.blocked }
-            } else {
-                { true }
-            }
-        )
+    private fun solve(edgeFilter: (Path) -> Boolean) = with(mutableSetOf(startpoint)) {
+        dfs(startpoint, edgeFilter)
     }
 
     private fun MutableSet<Point>.dfs(key: Point, filter: (Path) -> Boolean): Int? = when (key) {
         endpoint -> 0
-        else -> graph.getValue(key).maxOfWithOrNull (nullsFirst()) { (to, length) ->
+        else -> graph.getValue(key).maxOfWithOrNull(nullsFirst()) { (to, length) ->
             if (filter(length) && add(to)) {
                 dfs(to, filter)?.plus(length.length).also { remove(to) }
             } else {
