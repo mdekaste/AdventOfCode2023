@@ -7,6 +7,7 @@ import east
 import north
 import south
 import west
+import kotlin.math.max
 
 fun main(){
     Day23.part1().let(::println)
@@ -141,8 +142,8 @@ object Day23 : Challenge(){
                 if(nextPoints.size >= 2){
                     val size = visited.size
                     val from = visited.first()
-                    getOrPut(from){ mutableMapOf() }[curPoint] = visited.size
-                    getOrPut(curPoint){ mutableMapOf() }[from] = visited.size
+                    getOrPut(from){ mutableMapOf() }[curPoint] = max(visited.size, get(from)?.get(curPoint) ?: 0)
+                    getOrPut(curPoint){ mutableMapOf() }[from] = max(visited.size, get(curPoint)?.get(from) ?: 0)
                     nextPoints.forEach {
                         walk(it, mutableSetOf(curPoint!!))
                     }
@@ -167,13 +168,13 @@ object Day23 : Challenge(){
         return recursiveWalk(startpoint, 0, setOf(startpoint), graph)
     }
 
-    private fun recursiveWalk(key: Point, lengthTo: Int, visited: Set<Point>, graph: Map<Point, Map<Point, Int>>): Int {
+    private fun recursiveWalk(key: Point, lengthTo: Int, visited: Set<Point>, graph: Map<Point, Map<Point, Int>>): Int? {
         if (key == endpoint) {
             return lengthTo
         }
         val optionsAt = graph.getValue(key)
         return optionsAt.filter { (to, _) -> to !in visited }.map { (to, count) ->
-            lengthTo + recursiveWalk(to, count, visited + to, graph)
-        }.maxByOrNull { it } ?: 0
+            recursiveWalk(to, count, visited + to, graph)?.plus(lengthTo)
+        }.mapNotNull { it }.maxByOrNull { it }
     }
 }
