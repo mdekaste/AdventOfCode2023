@@ -15,7 +15,7 @@ abstract class Challenge(
     abstract fun part2(): Any?
 
     fun solve(): Any? {
-        repeat(10000) {
+        repeat(10) {
             part1()
             part2()
         }
@@ -47,6 +47,10 @@ operator fun Point.plus(other: Point) = first + other.first to second + other.se
 operator fun Point.minus(other: Point) = first - other.first to second - other.second
 
 operator fun Point.times(amount: Int) = first * amount to second * amount
+
+enum class Cardinals(val direction: Point){
+    UP(NORTH), RIGHT(EAST), DOWN(SOUTH), LEFT(WEST);
+}
 
 val CARDINALS = listOf(NORTH, EAST, SOUTH, WEST)
 val INTERCARDINALS = listOf(NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST)

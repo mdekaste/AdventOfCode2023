@@ -1,9 +1,14 @@
 package day23
 
 import Challenge
+import EAST
+import NORTH
 import Point
+import SOUTH
+import WEST
 import cardinals
 import east
+import minus
 import north
 import south
 import west
@@ -19,10 +24,13 @@ object Day23 : Challenge(){
         s.mapIndexed { x, c -> y to x to c }
     }.toMap()
 
+    private val directions = mapOf(NORTH to '^', EAST to '>', SOUTH to 'v', WEST to '<')
+
     val startpoint = 0 to 1
     val endpoint = parsed.maxOf { it.key.first } to parsed.maxOf { it.key.second } - 1
 
     override fun part1(): Any? {
+        val path = buildPath(startpoint, startpoint.south())
         //val initialState = State(0 to 1, emptySet())
         // return recursive(initialState) - 1
         return 0
@@ -156,25 +164,54 @@ object Day23 : Challenge(){
         walk(startpoint.south(), mutableSetOf(startpoint))
     }
 
-    override fun part2(): Any? {
-        println("calculating max distance...")
-//        graph {
-//            for ((root, to) in graph){
-//                to.map { Triple(root, it.key, it.value) }.forEach { (from, to, weight) ->
-//                    "y${from.first}x${from.second}" - "y${to.first}x${to.second}" + { label = weight.toString() }
-//                }
-//            }
-//        }.let { println(it.dot()) }
-        return recursiveWalk(startpoint, 0, setOf(startpoint), graph)
+    val graph2 = buildMap<Point, MutableMap<Point, Path>> {
+        var paths = setOfNotNull(buildPath(startpoint, startpoint.south()))
+        while(paths.isNotEmpty()){
+            val newPaths = mutableSetOf<Path>()
+            for(path in paths){
+                getOrPut(path.source){ mutableMapOf() }[path.prev] = path
+                path.cur.forEach { p ->
+                    buildPath(path.prev, p)?.also {
+                        if(!containsKey(it.source)){
+                            newPaths.add(it)
+                        }
+                    }
+                }
+            }
+            paths = newPaths
+        }
     }
 
-    private fun recursiveWalk(key: Point, lengthTo: Int, visited: Set<Point>, graph: Map<Point, Map<Point, Int>>): Int? {
-        if (key == endpoint) {
-            return lengthTo
+    data class Path(val source: Point, val length: Int = 0, val blocked: Boolean = false, val prev: Point, val cur: List<Point>)
+
+    private fun buildPath(from: Point, direction: Point) =
+        generateSequence(Path(source = from, prev = from, cur = listOf(direction))) { (source, length, blocked, prev, cur) ->
+            cur.singleOrNull()?.let { next ->
+                Path(
+                    source = source,
+                    length = length + 1,
+                    blocked = blocked || blocked(prev - next, prev),
+                    prev = next,
+                    cur = next.cardinals().filter { it != prev }.filter { parsed[it] !in setOf('#', null) }
+                )
+            }
+        }.last().takeIf { it.prev == endpoint || it.cur.isNotEmpty() }
+
+
+
+    private fun blocked(direction: Point, point: Point) = directions[direction] == parsed[point]
+
+
+    override fun part2() = with(mutableSetOf(startpoint)) { dfs(startpoint) }
+
+    private fun MutableSet<Point>.dfs(key: Point): Int? = when (key) {
+        endpoint -> 0
+        else -> graph2.getValue(key).maxOfWithOrNull(nullsFirst()) { (to, length) ->
+            if (add(to)) {
+                dfs(to)?.plus(length.length).also { remove(to) }
+            } else {
+                null
+            }
         }
-        val optionsAt = graph.getValue(key)
-        return optionsAt.filter { (to, _) -> to !in visited }.map { (to, count) ->
-            recursiveWalk(to, count, visited + to, graph)?.plus(lengthTo)
-        }.mapNotNull { it }.maxByOrNull { it }
     }
 }
