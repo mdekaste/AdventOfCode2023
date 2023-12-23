@@ -54,6 +54,10 @@ val WINDS = listOf(NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST,
 fun Point.cardinals() = CARDINALS.map { it + this }
 fun Point.intercardinals() = INTERCARDINALS.map { it + this }
 fun Point.winds() = WINDS.map { it + this }
+fun Point.east() = this + EAST
+fun Point.west() = this + WEST
+fun Point.north() = this + NORTH
+fun Point.south() = this + SOUTH
 
 operator fun Point.unaryMinus() = -first to -second
 operator fun Point.dec() = rotLeft()
