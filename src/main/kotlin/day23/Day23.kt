@@ -118,9 +118,22 @@ object Day23 : Challenge(){
                 if(curPoint == endpoint){
                     val size = visited.size
                     val from = visited.first()
-                    getOrPut(from){ mutableMapOf() }[curPoint] = size
-                    getOrPut(curPoint){ mutableMapOf() }[from] = size
+                    getOrPut(from){ mutableMapOf() }[curPoint] = visited.size
+                    getOrPut(curPoint){ mutableMapOf() }[from] = visited.size
                     break
+                }
+                if(curPoint in keys){
+                    val directions = getValue(curPoint)
+                    val from = visited.first()
+                    if(directions.containsKey(from)){
+                        if(directions.getValue(from) > visited.size){
+                            println("omg")
+                            break
+                        }
+                        if(directions.getValue(from) == visited.size){
+                            break
+                        }
+                    }
                 }
                 val nextPoints = curPoint.cardinals().filter { c ->
                     c !in visited && parsed[c] in setOf('.', '>', '<', '>', 'v')
@@ -128,14 +141,12 @@ object Day23 : Challenge(){
                 if(nextPoints.size >= 2){
                     val size = visited.size
                     val from = visited.first()
-                    if(get(from)?.get(curPoint).let { it == null || it < size }){
-                        getOrPut(from){ mutableMapOf() }[curPoint] = size
-                        getOrPut(curPoint){ mutableMapOf() }[from] = size
-                        nextPoints.forEach {
-                            walk(it, mutableSetOf(curPoint!!))
-                        }
-                        break
+                    getOrPut(from){ mutableMapOf() }[curPoint] = visited.size
+                    getOrPut(curPoint){ mutableMapOf() }[from] = visited.size
+                    nextPoints.forEach {
+                        walk(it, mutableSetOf(curPoint!!))
                     }
+                    break
                 }
                 visited.add(curPoint)
                 curPoint = nextPoints.firstOrNull()
@@ -145,18 +156,24 @@ object Day23 : Challenge(){
     }
 
     override fun part2(): Any? {
-        return recursiveWalk(startpoint, 0, emptySet(), graph)
+        println("calculating max distance...")
+//        graph {
+//            for ((root, to) in graph){
+//                to.map { Triple(root, it.key, it.value) }.forEach { (from, to, weight) ->
+//                    "y${from.first}x${from.second}" - "y${to.first}x${to.second}" + { label = weight.toString() }
+//                }
+//            }
+//        }.let { println(it.dot()) }
+        return recursiveWalk(startpoint, 0, setOf(startpoint), graph)
     }
 
-    fun recursiveWalk(key: Point, lengthTo: Int, visited: Set<Point>, graph: Map<Point, Map<Point, Int>>): Int {
-        if(key == endpoint){
+    private fun recursiveWalk(key: Point, lengthTo: Int, visited: Set<Point>, graph: Map<Point, Map<Point, Int>>): Int {
+        if (key == endpoint) {
             return lengthTo
         }
         val optionsAt = graph.getValue(key)
-        return optionsAt.maxOfOrNull { (to, count) ->
-            if(to !in visited){
-                lengthTo + recursiveWalk(to, count, visited + key, graph)
-            } else 0
-        } ?: 0
+        return optionsAt.filter { (to, _) -> to !in visited }.map { (to, count) ->
+            lengthTo + recursiveWalk(to, count, visited + to, graph)
+        }.maxByOrNull { it } ?: 0
     }
 }
