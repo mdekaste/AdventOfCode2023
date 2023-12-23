@@ -27,7 +27,7 @@ object Day23 : Challenge() {
 
     override fun part1() = solve{ !it.blocked }
 
-    val graph = buildMap<Point, MutableMap<Point, Path>> {
+    val graph2 = buildMap<Point, MutableMap<Point, Path>> {
         var paths = setOfNotNull(buildPath(startpoint, startpoint.south()))
         while (paths.isNotEmpty()) {
             val newPaths = mutableSetOf<Path>()
@@ -45,6 +45,18 @@ object Day23 : Challenge() {
         }
     }
 
+    val graph = buildMap<Point, MutableMap<Point, Path>> {
+        fun recursive(path: Path){
+            getOrPut(path.source) { mutableMapOf() }[path.prev] = path
+            path.cur.mapNotNull { buildPath(path.prev, it) }.forEach {
+                if(get(it.source)?.containsKey(it.prev) != true){
+                    recursive(it)
+                }
+            }
+        }
+        recursive(buildPath(startpoint, startpoint.south())!!)
+    }
+
     data class Path(val source: Point, val length: Int = 0, val blocked: Boolean = false, val prev: Point, val cur: List<Point>)
 
     private fun buildPath(from: Point, direction: Point) =
@@ -53,30 +65,26 @@ object Day23 : Challenge() {
                 Path(
                     source = source,
                     length = length + 1,
-                    blocked = blocked || blocked(prev - next, prev),
+                    blocked = blocked || directions[prev - next] == parsed[prev],
                     prev = next,
-                    cur = next.cardinals().filter { it != prev }.filter { parsed[it] !in setOf('#', null) }
+                    cur = next.cardinals().filter { it != prev && parsed[it] !in setOf('#', null) }
                 )
             }
         }.last().takeIf { it.prev == endpoint || it.cur.isNotEmpty() }
 
-
-    private fun blocked(direction: Point, point: Point) = directions[direction] == parsed[point]
-
     override fun part2() = solve { true }
 
     private fun solve(edgeFilter: (Path) -> Boolean) = with(mutableSetOf(startpoint)) {
-        dfs(startpoint, edgeFilter)
-    }
-
-    private fun MutableSet<Point>.dfs(key: Point, filter: (Path) -> Boolean): Int? = when (key) {
-        endpoint -> 0
-        else -> graph.getValue(key).maxOfWithOrNull(nullsFirst()) { (to, length) ->
-            if (filter(length) && add(to)) {
-                dfs(to, filter)?.plus(length.length).also { remove(to) }
-            } else {
-                null
+        fun dfs(key: Point): Int? = when (key) {
+            endpoint -> 0
+            else -> graph.getValue(key).maxOfWithOrNull(nullsFirst()) { (to, length) ->
+                if (edgeFilter(length) && add(to)) {
+                    dfs(to)?.plus(length.length).also { remove(to) }
+                } else {
+                    null
+                }
             }
         }
+        dfs(startpoint)
     }
 }
