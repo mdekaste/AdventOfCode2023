@@ -17,55 +17,6 @@ object Day24 : Challenge() {
         }
     }
 
-    val LOWERBOUND = 200000000000000.0.toBigDecimal()
-    val UPPERBOUND = 400000000000000.0.toBigDecimal()
-
-//    const val LOWERBOUND = 7.0
-//    const val UPPERBOUND = 27.0
-
-    override fun part1(): Any? {
-        val toCheck = parsed.flatMapIndexed { index: Int, input: Input -> parsed.drop(index + 1).map { input to it } }
-        return toCheck.map { (first, second) -> intersects(first, second) }.count { it }
-    }
-
-    fun intersects(input1: Input, input2: Input): Boolean {
-        var x: BigDecimal
-        var y: BigDecimal
-        if(input1.equation == input2.equation){
-            val xGrowth = input1.x < input2.x && input1.xDiff > 0 && input2.xDiff < 0
-            val xGrowth2 = input1.x > input2.x && input1.xDiff < 0 && input2.xDiff > 0
-            val yGrowth = input1.y < input2.y && input1.yDiff > 0 && input2.yDiff < 0
-            val yGrowth2 = input1.y > input2.y && input1.yDiff < 0 && input2.yDiff > 0
-            if((xGrowth || xGrowth2) && (yGrowth || yGrowth2)){
-                x = ((input1.x + input2.x) / 2L).toBigDecimal()
-                y = ((input1.y + input2.y) / 2L).toBigDecimal()
-            }
-            return false
-        } else if(input1.equation.m == input2.equation.m) {
-            return false
-        } else {
-            x = (input2.equation.b - input1.equation.b) / (input1.equation.m - input2.equation.m)
-            y = (input1.equation.m * x + input1.equation.b)
-        }
-
-        if(x < LOWERBOUND || x > UPPERBOUND || y < LOWERBOUND || y > UPPERBOUND){
-            return false
-        }
-        if(input1.xDiff >= 0 && x <= input1.x.toBigDecimal()){
-            return false
-        }
-        if(input2.xDiff >= 0 && x <= input2.x.toBigDecimal()){
-            return false
-        }
-        if(input1.yDiff >= 0 && y <= input1.y.toBigDecimal()){
-            return false
-        }
-        if(input2.yDiff >= 0 && y <= input2.y.toBigDecimal()){
-            return false
-        }
-        return true
-    }
-
     data class Input(
         val x: Long,
         val y: Long,
@@ -88,7 +39,29 @@ object Day24 : Challenge() {
         }
     }
 
-    override fun part2(): Any? {
+    override fun part1(): Any? {
         return null
+    }
+
+    /** now run z3 on this lmao **/
+    override fun part2(): Any? {
+        return buildString {
+            appendLine("(declare-const fx Int)")
+            appendLine("(declare-const fy Int)")
+            appendLine("(declare-const fz Int)")
+            appendLine("(declare-const fdx Int)")
+            appendLine("(declare-const fdy Int)")
+            appendLine("(declare-const fdz Int)")
+            parsed.take(3).forEachIndexed{ index, input ->
+                appendLine("(declare-const t$index Int)")
+                appendLine("(assert (>= t$index 0))")
+                appendLine("(assert (= (+ ${input.x} (* ${input.xDiff} t$index)) (+ fx (* fdx t$index))))")
+                appendLine("(assert (= (+ ${input.y} (* ${input.yDiff} t$index)) (+ fy (* fdy t$index))))")
+                appendLine("(assert (= (+ ${input.z} (* ${input.zDiff} t$index)) (+ fz (* fdz t$index))))")
+            }
+            appendLine("(check-sat)")
+            appendLine("(get-model)")
+            appendLine("(eval (+ fx fy fz))")
+        }
     }
 }
