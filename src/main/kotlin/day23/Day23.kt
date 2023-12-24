@@ -7,12 +7,14 @@ import Point
 import SOUTH
 import WEST
 import cardinals
+import io.github.rchowell.dotlin.digraph
 import minus
 import south
 
 fun main() {
     Day23.part1().let(::println)
     Day23.part2().let(::println)
+    Day23.solve().let(::println)
 }
 
 object Day23 : Challenge() {
@@ -27,7 +29,7 @@ object Day23 : Challenge() {
 
     override fun part1() = solve{ !it.blocked }
 
-    val graph2 = buildMap<Point, MutableMap<Point, Path>> {
+    val graph = buildMap<Point, MutableMap<Point, Path>> {
         var paths = setOfNotNull(buildPath(startpoint, startpoint.south()))
         while (paths.isNotEmpty()) {
             val newPaths = mutableSetOf<Path>()
@@ -45,17 +47,27 @@ object Day23 : Challenge() {
         }
     }
 
-    val graph = buildMap<Point, MutableMap<Point, Path>> {
-        fun recursive(path: Path){
-            getOrPut(path.source) { mutableMapOf() }[path.prev] = path
-            path.cur.mapNotNull { buildPath(path.prev, it) }.forEach {
-                if(get(it.source)?.containsKey(it.prev) != true){
-                    recursive(it)
-                }
+    fun Point.gs() = "y${first}x$second"
+
+    val digraph = digraph {
+        graph.forEach { (from, to) ->
+            to.values.forEach {  path ->
+                from.gs() - path.prev.gs() + { label = path.length.toString()}
             }
         }
-        recursive(buildPath(startpoint, startpoint.south())!!)
-    }
+    }.let { println(it.dot()) }
+
+//    val graph2 = buildMap<Point, MutableMap<Point, Path>> {
+//        fun recursive(path: Path){
+//            getOrPut(path.source) { mutableMapOf() }[path.prev] = path
+//            path.cur.mapNotNull { buildPath(path.prev, it) }.forEach {
+//                if(get(it.source)?.containsKey(it.prev) != true){
+//                    recursive(it)
+//                }
+//            }
+//        }
+//        recursive(buildPath(startpoint, startpoint.south())!!)
+//    }
 
     data class Path(val source: Point, val length: Int = 0, val blocked: Boolean = false, val prev: Point, val cur: List<Point>)
 
